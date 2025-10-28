@@ -40,6 +40,7 @@ export interface EditorState {
   // Actions
   addClip: (clip: VideoClip) => void;
   removeClip: (id: string) => void;
+  updateClip: (id: string, updates: Partial<VideoClip>) => void;
   selectClip: (clip: VideoClip | null) => void;
   
   addToTimeline: (clip: VideoClip, track: number, position: number) => void;
@@ -76,6 +77,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   removeClip: (id) => set((state) => ({
     clips: state.clips.filter(clip => clip.id !== id),
     selectedClip: state.selectedClip?.id === id ? null : state.selectedClip
+  })),
+
+  updateClip: (id, updates) => set((state) => ({
+    clips: state.clips.map(clip =>
+      clip.id === id ? { ...clip, ...updates } : clip
+    ),
+    selectedClip: state.selectedClip?.id === id 
+      ? { ...state.selectedClip, ...updates }
+      : state.selectedClip
   })),
 
   selectClip: (clip) => set({ selectedClip: clip }),

@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import "./App.css";
 import { useEditorStore } from "./state/useEditorStore";
+import { useTimelineStore } from "./state/timelineStore";
 import MediaPanel from "./components/MediaPanel";
-import VideoPlayer from "./components/VideoPlayer";
-import TimelineCanvas from "./components/TimelineCanvas";
+import { Timeline } from "./components/Timeline";
 import RecordingTab from "./components/RecordingTab";
-import TestData from "./components/TestData";
 import ExportModal from "./components/ExportModal";
 import HelpModal from "./components/HelpModal";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
@@ -13,6 +12,7 @@ import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 const App: React.FC = () => {
   console.log('App component rendering...');
   const { clips, timelineClips } = useEditorStore();
+  const { clips: timelineClipsNew, getTimelineDuration } = useTimelineStore();
   console.log('Current clips count:', clips.length);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
@@ -30,7 +30,7 @@ const App: React.FC = () => {
           </h1>
           <div className="flex items-center space-x-4">
             <div className="text-sm text-gray-600">
-              Timeline: {timelineClips.length} clips
+              Timeline: {timelineClipsNew.length} clips • {getTimelineDuration().toFixed(1)}s
             </div>
             <button
               onClick={() => setShowHelpModal(true)}
@@ -40,7 +40,7 @@ const App: React.FC = () => {
             </button>
             <button
               onClick={() => setShowExportModal(true)}
-              disabled={timelineClips.length === 0}
+              disabled={timelineClipsNew.length === 0}
               className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               Export Video
@@ -79,29 +79,33 @@ const App: React.FC = () => {
         {/* Tab Content */}
         {activeTab === 'editor' ? (
           <>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Timeline Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               {/* Media Library */}
               <div className="lg:col-span-1">
                 <div className="bg-white rounded-lg shadow-md p-6">
                   <MediaPanel />
                 </div>
-                <div className="mt-4">
-                  <TestData />
-                </div>
               </div>
 
-              {/* Video Player */}
-              <div className="lg:col-span-2">
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  <VideoPlayer />
+              {/* Main Timeline with 1920x1080 Preview */}
+              <div className="lg:col-span-4">
+                <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                  <div className="space-y-4">
+                    {/* Timeline Header */}
+                    <div className="flex items-center justify-between p-6 pb-0">
+                      <h2 className="text-xl font-semibold text-gray-800">Timeline</h2>
+                      <div className="flex items-center space-x-4">
+                        <div className="text-sm text-gray-500">
+                          Imported videos are automatically added to timeline
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Timeline Component with 1920x1080 Preview */}
+                    <Timeline />
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Timeline */}
-            <div className="mt-6">
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <TimelineCanvas />
               </div>
             </div>
           </>

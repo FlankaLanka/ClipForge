@@ -18,6 +18,8 @@ pub async fn import_video(file_path: String) -> Result<VideoClip, String> {
         metadata: metadata.clone(),
         start_time: 0.0,
         end_time: metadata.duration,
+        trim_in: 0.0,
+        trim_out: metadata.duration,
     };
 
     Ok(clip)
@@ -52,3 +54,14 @@ pub async fn save_video(file_path: String, data: Vec<u8>) -> Result<String, Stri
     
     Ok(file_path)
 }
+
+#[command]
+pub async fn read_file_bytes(file_path: String) -> Result<Vec<u8>, String> {
+    let data = std::fs::read(&file_path)
+        .map_err(|e| format!("Failed to read file: {}", e))?;
+    
+    println!("Read {} bytes from file: {}", data.len(), file_path);
+    
+    Ok(data)
+}
+

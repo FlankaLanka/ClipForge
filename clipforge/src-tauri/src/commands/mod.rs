@@ -21,6 +21,8 @@ pub struct VideoClip {
     pub metadata: VideoMetadata,
     pub start_time: f64,
     pub end_time: f64,
+    pub trim_in: f64,
+    pub trim_out: f64,
 }
 
 // This function is no longer needed in Tauri 2.0

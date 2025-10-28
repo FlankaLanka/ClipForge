@@ -2,7 +2,7 @@ mod commands;
 
 use commands::{
     ffmpeg::{get_video_metadata, trim_video, export_timeline, convert_mov_to_mp4},
-    filesystem::{import_video, save_video, import_video_from_file, get_video_url},
+    filesystem::{import_video, save_video, import_video_from_file, get_video_url, read_file_bytes},
     recording::{
         get_available_monitors, add_capture_source, update_capture_source_position,
         remove_capture_source, get_capture_sources, start_screen_recording, 
@@ -25,6 +25,7 @@ pub fn run() {
             save_video,
             import_video_from_file,
             get_video_url,
+            read_file_bytes,
             get_available_monitors,
             add_capture_source,
             update_capture_source_position,

@@ -1,7 +1,7 @@
 # ClipForge - System Patterns
 
 ## Architecture Overview
-ClipForge follows a clear separation between Rust backend (system operations) and React frontend (UI and user interactions), with an advanced canvas-based recording system.
+ClipForge follows a clear separation between Rust backend (system operations) and React frontend (UI and user interactions), with an advanced canvas-based recording system and a complete timeline-based video editor.
 
 ## Key Technical Decisions
 
@@ -16,8 +16,32 @@ ClipForge follows a clear separation between Rust backend (system operations) an
 - **Component Structure**: Modular components for each major UI section
 - **State Management**: Zustand for global state (clips, timeline, player state)
 - **Canvas Rendering**: Dual canvas system for display and recording
+- **Timeline System**: Single-track timeline with video clip management
 - **Type Safety**: Full TypeScript coverage for all components
 - **Audio Processing**: Web Audio API for real-time audio mixing
+
+## Timeline Video Editor System
+
+### Single Track Timeline
+- **Timeline Design**: Simplified single-track timeline for easy video editing
+- **Video Clips**: Drag, trim, split, and delete video clips on timeline
+- **Real-time Preview**: 60fps video preview synchronized with timeline
+- **Timeline Controls**: Playhead, scrub controls, zoom, and pan functionality
+- **Video Import**: Drag-and-drop video import with automatic timeline addition
+
+### Timeline Components
+- **Timeline**: Main timeline editor with video clip management
+- **VideoClip**: Individual video clip component with drag, trim, split, delete
+- **TimeRuler**: Dynamic time ruler with zoom-adaptive markers
+- **ScrubbablePlayhead**: Draggable playhead for timeline navigation
+- **MediaPanel**: Video import panel with automatic timeline addition
+- **ExportModal**: FFmpeg-based export with file dialog integration
+
+### Timeline State Management
+- **TimelineStore**: Zustand store for timeline state (clips, playhead, zoom, pan)
+- **Clip Management**: Add, move, trim, split, and delete video clips
+- **Collision Detection**: Prevent overlapping clips on timeline
+- **Timeline Navigation**: Playhead control, zoom, and pan functionality
 
 ## Advanced Recording System
 

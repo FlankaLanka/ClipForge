@@ -1,44 +1,54 @@
 # ClipForge - Active Context
 
 ## Current Work Focus
-**Phase 3: Advanced Recording Studio** (Completed)
-- ✅ Implemented high-resolution 1920x1080 canvas recording system
-- ✅ Created professional recording studio with canvas-based sprites
-- ✅ Added real-time audio mixing for voice sources
-- ✅ Implemented screen capture, webcam capture, and voice recording
-- ✅ Built intuitive drag-and-drop sprite management system
+**Phase 4: Timeline Video Editor** (Completed)
+- ✅ Implemented complete timeline-based video editing system
+- ✅ Created single-track timeline with drag, trim, split, and delete functionality
+- ✅ Added real-time 60fps video preview synchronized with timeline
+- ✅ Implemented FFmpeg-based export with proper audio/video handling
+- ✅ Built intuitive timeline controls with playhead, scrub, zoom, and pan
 
 ## Recent Major Achievements
+- ✅ **Timeline Video Editor**: Complete timeline-based video editing system
+- ✅ **Single Track Design**: Simplified single-track timeline for easy editing
+- ✅ **Real-time Preview**: 60fps video preview synchronized with timeline
+- ✅ **Timeline Export**: FFmpeg-based export with proper audio/video handling
+- ✅ **Timeline Controls**: Playhead, scrub controls, zoom, and pan functionality
+- ✅ **Video Import**: Drag-and-drop video import with automatic timeline addition
+- ✅ **Clip Editing**: Drag, trim, split, and delete video clips
 - ✅ **High-Quality Recording**: 1920x1080 canvas recording at 60 FPS with 20 Mbps video + 256 kbps audio
-- ✅ **Canvas Recording System**: Separate high-resolution recording canvas that syncs with display canvas
-- ✅ **Audio Integration**: Real-time audio mixing from voice sources using Web Audio API
-- ✅ **Smart Sprite Sizing**: Sprites automatically sized to match actual source dimensions
-- ✅ **Professional UI**: Clean, intuitive interface with proper resolution indicators
-- ✅ **File Management**: User-selectable output folders with timestamped filenames
 
 ## Current System Architecture
-- **Canvas Preview**: 1920x1080 resolution with responsive scaling
-- **Recording Canvas**: Hidden 1920x1080 canvas for high-quality recording
+- **Timeline Editor**: Single-track timeline with video clip management
+- **Video Preview**: 1920x1080 video preview synchronized with timeline
+- **Timeline Controls**: Playhead, scrub controls, zoom, and pan
+- **Clip Editing**: Drag, trim, split, and delete video clips
+- **Timeline Export**: FFmpeg-based export with proper audio/video handling
+- **Video Import**: Drag-and-drop video import with automatic timeline addition
+- **Canvas Recording**: 1920x1080 canvas recording system for screen/webcam capture
 - **Audio Mixing**: Web Audio API for real-time voice source mixing
-- **Sprite Management**: Drag, resize, rotate, layer management for all sources
-- **Source Types**: Screen capture, webcam capture, voice-only sources
-- **Output Format**: WebM/MP4 with VP9/VP8 codec support
 
 ## Key Technical Features
-- **Dual Canvas System**: Display canvas for interaction, recording canvas for output
-- **Real-time Sync**: Continuous animation loop keeps recording canvas updated
-- **Coordinate Mapping**: Proper scaling between display and recording coordinates
+- **Timeline System**: Single-track timeline with video clip management
+- **Real-time Preview**: 60fps video preview synchronized with timeline
+- **Timeline Controls**: Playhead, scrub controls, zoom, and pan
+- **Clip Editing**: Drag, trim, split, and delete video clips
+- **Timeline Export**: FFmpeg-based export with proper audio/video handling
+- **Video Import**: Drag-and-drop video import with automatic timeline addition
+- **Canvas Recording**: 1920x1080 canvas recording system for screen/webcam capture
 - **Audio Processing**: Multiple voice sources mixed into single audio track
 - **Quality Settings**: 20 Mbps video, 256 kbps audio, 60 FPS recording
-- **Format Detection**: Automatic MIME type detection with fallbacks
 
 ## Active Components
-- **CanvasRecordingStudio**: Main recording interface with source management
+- **Timeline**: Main timeline editor with video clip management
+- **VideoClip**: Individual video clip component with drag, trim, split, delete
+- **TimeRuler**: Dynamic time ruler with zoom-adaptive markers
+- **ScrubbablePlayhead**: Draggable playhead for timeline navigation
+- **MediaPanel**: Video import panel with automatic timeline addition
+- **ExportModal**: FFmpeg-based export with file dialog integration
+- **CanvasRecordingStudio**: Recording interface with source management
 - **CanvasPreview**: 1920x1080 canvas with sprite rendering and interaction
 - **CanvasRecorder**: High-quality recording service with audio mixing
-- **VoiceMeter**: Real-time audio level visualization
-- **AudioIndicator**: Visual audio feedback for sprites
-- **Source Dialogs**: Webcam and voice source selection dialogs
 
 ## Important Instructions
 - **DO NOT start development servers unless explicitly told to do so**
@@ -47,9 +57,12 @@
 - All recording functionality is complete and ready for testing
 
 ## Current Status
+- ✅ Timeline video editor fully functional
+- ✅ Real-time 60fps video preview working
+- ✅ Timeline controls (playhead, scrub, zoom, pan) working
+- ✅ Clip editing (drag, trim, split, delete) working
+- ✅ FFmpeg-based export with proper audio/video handling
+- ✅ Video import with automatic timeline addition
 - ✅ Recording system fully functional
 - ✅ High-quality 1920x1080 output
-- ✅ Audio capture and mixing working
-- ✅ Professional UI with proper scaling
-- ✅ File management and output working
 - 🎯 **Ready for user testing and feedback**

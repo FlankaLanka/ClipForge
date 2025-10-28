@@ -4,7 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 
 const VideoPlayer: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { selectedClip, isPlaying, currentTime, setCurrentTime, setDuration, setPlaying, updateTimelineClip } = useEditorStore();
+  const { selectedClip, isPlaying, currentTime, setCurrentTime, setDuration, setPlaying, updateClip } = useEditorStore();
   
   // Trimming state
   const [trimStart, setTrimStart] = React.useState(0);
@@ -13,6 +13,58 @@ const VideoPlayer: React.FC = () => {
   // Conversion state
   const [isConverting, setIsConverting] = useState(false);
   const [convertedPath, setConvertedPath] = useState<string | null>(null);
+  
+  // Video blob URL state
+  const [videoBlobUrl, setVideoBlobUrl] = useState<string | null>(null);
+
+  // Load video file and create blob URL
+  const loadVideoFile = async (filePath: string) => {
+    try {
+      console.log('Loading video file:', filePath);
+      
+      // Read the file using Tauri's filesystem API
+      const fileData = await invoke('read_file_bytes', { filePath });
+      const uint8Array = new Uint8Array(fileData as number[]);
+      
+      // Create blob from file data
+      const blob = new Blob([uint8Array], { type: 'video/mp4' });
+      const blobUrl = URL.createObjectURL(blob);
+      
+      console.log('Created blob URL:', blobUrl);
+      setVideoBlobUrl(blobUrl);
+      
+      return blobUrl;
+    } catch (error) {
+      console.error('Failed to load video file:', error);
+      return null;
+    }
+  };
+
+  // Load video when selectedClip changes
+  useEffect(() => {
+    if (selectedClip) {
+      if (selectedClip.file_path.startsWith('/path/to/mock/')) {
+        // Mock video - no need to load
+        return;
+      } else if (selectedClip.file_path.startsWith('blob:')) {
+        // Blob URL - use directly
+        console.log('Using blob URL directly:', selectedClip.file_path);
+        setVideoBlobUrl(selectedClip.file_path);
+      } else {
+        // Regular file path - load via Tauri
+        loadVideoFile(selectedClip.file_path);
+      }
+    }
+  }, [selectedClip]);
+
+  // Cleanup blob URL when component unmounts or videoBlobUrl changes
+  useEffect(() => {
+    return () => {
+      if (videoBlobUrl) {
+        URL.revokeObjectURL(videoBlobUrl);
+      }
+    };
+  }, [videoBlobUrl]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -87,19 +139,15 @@ const VideoPlayer: React.FC = () => {
 
   const applyTrim = () => {
     if (selectedClip) {
-      // Update the selected clip's trim times
-      const updatedClip = {
-        ...selectedClip,
+      // Update the clip in the store
+      updateClip(selectedClip.id, {
         start_time: trimStart,
         end_time: trimEnd
-      };
+      });
       
-      // Update in the store (this will trigger a re-render)
-      // For now, we'll just log the trim values
       console.log('Applied trim to clip:', selectedClip.id, 'Start:', trimStart, 'End:', trimEnd);
       
-      // In a real implementation, we'd update the clip in the store
-      // For now, we'll show a success message
+      // Show success message
       alert(`Trim applied: ${trimStart.toFixed(1)}s - ${trimEnd.toFixed(1)}s`);
     }
   };
@@ -144,8 +192,22 @@ const VideoPlayer: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Preview</h2>
-      <div className="aspect-video bg-black rounded-lg overflow-hidden">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-gray-800">Video Preview</h2>
+        <div className="flex items-center space-x-2 text-sm text-gray-500">
+          <span className="px-2 py-1 bg-gray-100 rounded">
+            {selectedClip.metadata.width}×{selectedClip.metadata.height}
+          </span>
+          <span className="px-2 py-1 bg-gray-100 rounded">
+            {selectedClip.metadata.fps.toFixed(1)} fps
+          </span>
+          <span className="px-2 py-1 bg-gray-100 rounded">
+            {selectedClip.metadata.format.toUpperCase()}
+          </span>
+        </div>
+      </div>
+      
+      <div className="relative bg-black rounded-lg overflow-hidden shadow-lg">
         {selectedClip.file_path.startsWith('/path/to/mock/') ? (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
             <div className="text-center text-white">
@@ -193,109 +255,189 @@ const VideoPlayer: React.FC = () => {
               console.log('Converted video loaded successfully:', convertedPath);
             }}
           />
+        ) : videoBlobUrl ? (
+          <video
+            ref={videoRef}
+            src={videoBlobUrl}
+            className="w-full h-full object-contain"
+            controls={false}
+            onError={(e) => {
+              console.error('Video load error:', e);
+              console.log('Video blob URL:', videoBlobUrl);
+            }}
+            onLoadStart={() => {
+              console.log('Video loading started:', videoBlobUrl);
+            }}
+            onLoadedData={() => {
+              console.log('Video loaded successfully:', videoBlobUrl);
+            }}
+            onLoadedMetadata={() => {
+              console.log('Video metadata loaded:', videoBlobUrl);
+            }}
+          />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-500 to-blue-600">
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-yellow-500 to-orange-600">
             <div className="text-center text-white">
-              <div className="text-4xl mb-2">🎬</div>
-              <div className="text-lg font-semibold">Video Loaded</div>
+              <div className="text-4xl mb-2">⏳</div>
+              <div className="text-lg font-semibold">Loading Video...</div>
               <div className="text-sm opacity-80">
                 {selectedClip.metadata.width}x{selectedClip.metadata.height} • {selectedClip.metadata.duration.toFixed(1)}s
-              </div>
-              <div className="text-xs opacity-60 mt-2">
-                {selectedClip.file_path.split('/').pop()}
-              </div>
-              <div className="text-xs opacity-60 mt-1">
-                Format: {selectedClip.metadata.format} • {Math.round(selectedClip.metadata.file_size / 1024 / 1024)}MB
-              </div>
-              <div className="text-xs opacity-60 mt-1">
-                Preview available in timeline editing
               </div>
             </div>
           </div>
         )}
       </div>
       
-      <div className="space-y-4">
-        {/* Playback Controls */}
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={handlePlayPause}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors opacity-50 cursor-not-allowed"
-            disabled
-          >
-            {isPlaying ? 'Pause' : 'Play'}
-          </button>
-          
-          <div className="flex-1 text-sm text-gray-500">
-            {Math.floor(currentTime / 60)}:{(currentTime % 60).toFixed(1).padStart(4, '0')} / 
-            {Math.floor(selectedClip.metadata.duration / 60)}:{(selectedClip.metadata.duration % 60).toFixed(1).padStart(4, '0')}
-          </div>
-          
-          <div className="text-xs text-gray-400">
-            Preview disabled in web view
-          </div>
-        </div>
-        
-        {/* Seek Bar */}
-        <input
-          type="range"
-          min="0"
-          max={selectedClip.metadata.duration}
-          step="0.1"
-          value={currentTime}
-          onChange={handleSeek}
-          className="w-full opacity-50"
-          disabled
-        />
-
-        {/* Trimming Controls */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-700">Trim Video</h3>
-            <button
-              onClick={applyTrim}
-              className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors"
-            >
-              Apply Trim
-            </button>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <label className="text-xs text-gray-600 w-12">Start:</label>
-              <input
-                type="range"
-                min="0"
-                max={selectedClip.metadata.duration}
-                step="0.1"
-                value={trimStart}
-                onChange={handleTrimStart}
-                className="flex-1"
-              />
-              <span className="text-xs text-gray-500 w-12">
-                {trimStart.toFixed(1)}s
-              </span>
+      {/* Professional Video Controls */}
+      <div className="bg-white rounded-lg border shadow-sm">
+        {/* Main Controls */}
+        <div className="p-4 border-b">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={handlePlayPause}
+                className="flex items-center justify-center w-10 h-10 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-md"
+              >
+                {isPlaying ? (
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </button>
+              
+              <div className="flex items-center space-x-2 text-sm font-mono text-gray-600">
+                <span className="px-2 py-1 bg-gray-100 rounded">
+                  {Math.floor(currentTime / 60)}:{(currentTime % 60).toFixed(1).padStart(4, '0')}
+                </span>
+                <span className="text-gray-400">/</span>
+                <span className="px-2 py-1 bg-gray-100 rounded">
+                  {Math.floor(selectedClip.metadata.duration / 60)}:{(selectedClip.metadata.duration % 60).toFixed(1).padStart(4, '0')}
+                </span>
+              </div>
             </div>
             
             <div className="flex items-center space-x-2">
-              <label className="text-xs text-gray-600 w-12">End:</label>
-              <input
-                type="range"
-                min="0"
-                max={selectedClip.metadata.duration}
-                step="0.1"
-                value={trimEnd}
-                onChange={handleTrimEnd}
-                className="flex-1"
-              />
-              <span className="text-xs text-gray-500 w-12">
-                {trimEnd.toFixed(1)}s
+              <span className="text-xs text-gray-500">Duration:</span>
+              <span className="text-sm font-medium text-gray-700">
+                {(selectedClip.metadata.duration - currentTime).toFixed(1)}s remaining
               </span>
             </div>
           </div>
           
-          <div className="text-xs text-gray-500 text-center">
-            Duration: {(trimEnd - trimStart).toFixed(1)}s
+          {/* Professional Seek Bar */}
+          <div className="relative">
+            <input
+              type="range"
+              min="0"
+              max={selectedClip.metadata.duration}
+              step="0.1"
+              value={currentTime}
+              onChange={handleSeek}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+              style={{
+                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(currentTime / selectedClip.metadata.duration) * 100}%, #e5e7eb ${(currentTime / selectedClip.metadata.duration) * 100}%, #e5e7eb 100%)`
+              }}
+            />
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>0:00</span>
+              <span>{Math.floor(selectedClip.metadata.duration / 60)}:{(selectedClip.metadata.duration % 60).toFixed(0).padStart(2, '0')}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Professional Trimming Controls */}
+        <div className="p-4 bg-gray-50">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+              </svg>
+              <h3 className="text-sm font-semibold text-gray-800">Trim Controls</h3>
+            </div>
+            <button
+              onClick={applyTrim}
+              className="flex items-center space-x-1 bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 transition-colors shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Apply Trim</span>
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            {/* Start Time Control */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-700">Start Time</label>
+                <span className="text-sm font-mono text-gray-600 bg-white px-2 py-1 rounded border">
+                  {Math.floor(trimStart / 60)}:{(trimStart % 60).toFixed(1).padStart(4, '0')}
+                </span>
+              </div>
+              <div className="relative">
+                <input
+                  type="range"
+                  min="0"
+                  max={selectedClip.metadata.duration}
+                  step="0.1"
+                  value={trimStart}
+                  onChange={handleTrimStart}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, #10b981 0%, #10b981 ${(trimStart / selectedClip.metadata.duration) * 100}%, #e5e7eb ${(trimStart / selectedClip.metadata.duration) * 100}%, #e5e7eb 100%)`
+                  }}
+                />
+              </div>
+            </div>
+            
+            {/* End Time Control */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-700">End Time</label>
+                <span className="text-sm font-mono text-gray-600 bg-white px-2 py-1 rounded border">
+                  {Math.floor(trimEnd / 60)}:{(trimEnd % 60).toFixed(1).padStart(4, '0')}
+                </span>
+              </div>
+              <div className="relative">
+                <input
+                  type="range"
+                  min="0"
+                  max={selectedClip.metadata.duration}
+                  step="0.1"
+                  value={trimEnd}
+                  onChange={handleTrimEnd}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${(trimEnd / selectedClip.metadata.duration) * 100}%, #e5e7eb ${(trimEnd / selectedClip.metadata.duration) * 100}%, #e5e7eb 100%)`
+                  }}
+                />
+              </div>
+            </div>
+            
+            {/* Trim Summary */}
+            <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
+              <div className="flex items-center space-x-4">
+                <div className="text-sm">
+                  <span className="text-gray-500">Trimmed Duration:</span>
+                  <span className="ml-2 font-semibold text-gray-800">
+                    {Math.floor((trimEnd - trimStart) / 60)}:{((trimEnd - trimStart) % 60).toFixed(1).padStart(4, '0')}
+                  </span>
+                </div>
+                <div className="text-sm">
+                  <span className="text-gray-500">Removed:</span>
+                  <span className="ml-2 font-semibold text-red-600">
+                    {Math.floor((selectedClip.metadata.duration - (trimEnd - trimStart)) / 60)}:{((selectedClip.metadata.duration - (trimEnd - trimStart)) % 60).toFixed(1).padStart(4, '0')}
+                  </span>
+                </div>
+              </div>
+              <div className="text-xs text-gray-500">
+                {(((trimEnd - trimStart) / selectedClip.metadata.duration) * 100).toFixed(1)}% of original
+              </div>
+            </div>
           </div>
         </div>
       </div>

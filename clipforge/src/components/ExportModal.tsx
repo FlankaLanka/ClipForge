@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { useEditorStore } from '../state/useEditorStore';
+import { useTimelineStore } from '../state/timelineStore';
+import { save } from '@tauri-apps/plugin-dialog';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -8,11 +9,36 @@ interface ExportModalProps {
 }
 
 const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => {
-  const { timelineClips } = useEditorStore();
+  const { clips: timelineClips } = useTimelineStore();
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
-  const [outputPath, setOutputPath] = useState('/tmp/clipforge_export.mp4');
+  const [outputPath, setOutputPath] = useState('');
   const [resolution, setResolution] = useState('1080p');
+
+  const handleBrowseFile = async () => {
+    try {
+      // Generate a timestamped filename
+      const now = new Date();
+      const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const defaultName = `clipforge_export_${timestamp}.mp4`;
+      
+      const result = await save({
+        defaultPath: `~/Desktop/${defaultName}`,
+        filters: [
+          { name: 'MP4 Video', extensions: ['mp4'] },
+          { name: 'All Files', extensions: ['*'] }
+        ],
+        title: 'Save Video As'
+      });
+      
+      if (result) {
+        setOutputPath(result);
+      }
+    } catch (error) {
+      console.error('Failed to open file dialog:', error);
+      alert('Failed to open file dialog');
+    }
+  };
 
   const handleExport = async () => {
     if (timelineClips.length === 0) {
@@ -20,10 +46,36 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => {
       return;
     }
 
+    if (!outputPath) {
+      alert('Please select an output file path');
+      return;
+    }
+
     setIsExporting(true);
     setExportProgress(0);
 
     try {
+      // Convert TimelineClip to VideoClip format for the backend
+      // This includes the actual timeline positioning and trimming
+      const videoClips = timelineClips.map(clip => ({
+        id: clip.id,
+        file_path: clip.src,
+        metadata: {
+          duration: clip.originalDuration,
+          width: clip.width,
+          height: clip.height,
+          fps: clip.fps,
+          file_size: 0, // We don't have this in TimelineClip
+          format: 'mp4' // Assume MP4 for now
+        },
+        // Timeline positioning
+        start_time: clip.startTime,
+        end_time: clip.endTime,
+        // Trimming information
+        trim_in: clip.trimIn,
+        trim_out: clip.trimOut
+      }));
+
       // Simulate progress updates
       const progressInterval = setInterval(() => {
         setExportProgress(prev => {
@@ -37,7 +89,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => {
 
       const result = await invoke('export_timeline', {
         params: {
-          clips: timelineClips,
+          clips: videoClips,
           output_path: outputPath,
           resolution: resolution
         }
@@ -71,13 +123,24 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Output Path
             </label>
-            <input
-              type="text"
-              value={outputPath}
-              onChange={(e) => setOutputPath(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isExporting}
-            />
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                value={outputPath}
+                onChange={(e) => setOutputPath(e.target.value)}
+                placeholder="Select output file..."
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isExporting}
+              />
+              <button
+                type="button"
+                onClick={handleBrowseFile}
+                disabled={isExporting}
+                className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              >
+                Browse
+              </button>
+            </div>
           </div>
 
           <div>
