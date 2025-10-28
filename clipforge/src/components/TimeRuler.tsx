@@ -17,18 +17,21 @@ export function TimeRuler({ duration, scale, currentTime, onTimeChange, trackLab
     if (scale >= 25) return 2;    // 2s intervals
     if (scale >= 10) return 5;    // 5s intervals
     if (scale >= 5) return 10;    // 10s intervals
+    if (scale >= 2) return 15;    // 15s intervals
     return 30; // 30s intervals
   };
 
   const timeScale = getTimeScale(scale);
-  const totalWidth = duration * scale;
+  // Make ruler extend beyond current duration for infinite scrolling
+  const extendedDuration = Math.max(duration * 2, 120); // At least 2 minutes or double current duration
+  const totalWidth = extendedDuration * scale;
   const majorInterval = timeScale >= 1 ? Math.ceil(timeScale) : timeScale;
   const minorInterval = majorInterval / 5;
 
   // Generate time markers
   const generateMarkers = () => {
     const markers = [];
-    const maxTime = Math.ceil(duration / timeScale) * timeScale;
+    const maxTime = Math.ceil(extendedDuration / timeScale) * timeScale;
     
     // Use integer-based iteration to avoid floating-point errors
     const steps = Math.ceil(maxTime / minorInterval);
@@ -74,14 +77,15 @@ export function TimeRuler({ duration, scale, currentTime, onTimeChange, trackLab
   const handleRulerClick = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left - trackLabelWidth;
-    const time = Math.max(0, Math.min(duration, x / scale));
+    const time = Math.max(0, x / scale); // Allow clicking beyond current duration
     onTimeChange(time);
   };
 
   return (
     <div 
-      className="h-8 bg-gray-50 border-b border-gray-300 relative cursor-pointer select-none"
+      className="h-8 bg-gray-50 border-b border-gray-300 relative cursor-pointer select-none w-full"
       onClick={handleRulerClick}
+      style={{ minWidth: totalWidth + trackLabelWidth }}
     >
       {/* Time markers */}
       {generateMarkers()}

@@ -499,10 +499,9 @@ const CanvasPreview: React.FC<CanvasPreviewProps> = ({
         displayHeight = displayWidth / aspectRatio;
       }
       
-      // Center the canvas in the container
+      // Set the canvas display size (flexbox will center it)
       canvas.style.width = `${displayWidth}px`;
       canvas.style.height = `${displayHeight}px`;
-      canvas.style.margin = 'auto';
       
       render();
     };
@@ -514,10 +513,10 @@ const CanvasPreview: React.FC<CanvasPreviewProps> = ({
   }, [render]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-full bg-black rounded-lg overflow-hidden">
+    <div ref={containerRef} className="relative w-full h-full bg-black rounded-lg overflow-hidden flex items-center justify-center">
       <canvas
         ref={canvasRef}
-        className="w-full h-full"
+        className="block"
         style={{ cursor }}
         onMouseDown={handleMouseDown}
         onContextMenu={(e) => e.preventDefault()}
@@ -580,13 +579,13 @@ const CanvasPreview: React.FC<CanvasPreviewProps> = ({
       
           {/* Instructions overlay */}
           {sprites.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center text-gray-400 pointer-events-none">
+            <div className="absolute inset-0 flex items-center justify-center text-white pointer-events-none">
               <div className="text-center">
                 <div className="text-6xl mb-4">📺</div>
                 <div className="text-xl font-medium mb-2">Canvas Preview (1920x1080)</div>
-                <div className="text-sm">Add sources to see them as sprites on this canvas</div>
-                <div className="text-xs mt-2">0,0 is at the center • Drag to move • Right-click for menu • Resize handles when selected</div>
-                <div className="text-xs mt-1 text-blue-400">Recording will capture at full 1920x1080 resolution</div>
+                <div className="text-sm mb-2">Add sources to see them as sprites on this canvas</div>
+                <div className="text-xs mb-1">0,0 is at the center • Drag to move • Right-click for menu • Resize handles when selected</div>
+                <div className="text-xs text-blue-300">Recording will capture at full 1920x1080 resolution</div>
               </div>
             </div>
           )}

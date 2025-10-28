@@ -52,10 +52,10 @@ export function Timeline() {
     setCurrentTime(playheadTime);
   }, [playheadTime]);
 
-  // High-performance display time update (60fps)
+  // Optimized display time update (20fps for better performance)
   useEffect(() => {
     const now = performance.now();
-    if (now - lastDisplayUpdate.current > 16.67) { // Update at 60fps
+    if (now - lastDisplayUpdate.current > 50) { // Update at 20fps
       setDisplayTime(currentTime);
       lastDisplayUpdate.current = now;
     }
@@ -117,11 +117,11 @@ export function Timeline() {
       console.log('Created blob URL:', blobUrl, 'with MIME type:', mimeType, 'blob size:', blob.size);
       setVideoBlobUrl(blobUrl);
       
-      // Preload video for smooth playback
+      // Optimize video loading for better performance
       const video = videoRef.current;
       if (video) {
         video.load();
-        video.preload = 'auto';
+        video.preload = 'metadata'; // Only load metadata, not full video
         
         // Add event listeners for debugging
         video.addEventListener('loadedmetadata', () => {
@@ -140,6 +140,10 @@ export function Timeline() {
         video.addEventListener('canplay', () => {
           console.log('Video can play');
         });
+        
+        // Optimize video settings for performance
+        video.defaultPlaybackRate = 1.0;
+        video.playbackRate = 1.0;
       }
       
       return blobUrl;
@@ -149,10 +153,14 @@ export function Timeline() {
     }
   };
 
-  // Find current clip at playhead position - optimized to reduce unnecessary updates
+  // Find current clip at playhead position - properly handle timeline parsing
   useEffect(() => {
     const clip = timelineClips.find(
-      (clip) => currentTime >= clip.startTime && currentTime < clip.endTime
+      (clip) => {
+        const clipStartTime = clip.startTime;
+        const clipEndTime = clip.startTime + clip.duration; // Use duration, not endTime
+        return currentTime >= clipStartTime && currentTime < clipEndTime;
+      }
     );
     
     // Only update if the clip actually changed
@@ -170,59 +178,45 @@ export function Timeline() {
     }
   }, [currentClip]);
 
-  // Optimized video sync with high-performance playback
+
+
+  // Video sync - only when not playing (for scrubbing) or when clip changes
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !currentClip) return;
 
-    const relativeTime = currentTime - currentClip.startTime + currentClip.trimIn;
+    // Calculate the correct video position based on timeline
+    const timelinePosition = currentTime;
+    const clipStartTime = currentClip.startTime;
+    const clipEndTime = currentClip.startTime + currentClip.duration;
     
-    // Only seek if the difference is significant (reduces constant seeking)
-    if (Math.abs(video.currentTime - relativeTime) > 0.2) {
-      video.currentTime = Math.max(0, relativeTime);
-    }
-
-    // Handle play/pause state
-    if (isPlaying && video.paused) {
-      video.play().catch(console.error);
-    } else if (!isPlaying && !video.paused) {
-      video.pause();
+    // Check if we're within this clip's timeline range
+    if (timelinePosition >= clipStartTime && timelinePosition <= clipEndTime) {
+      // Calculate position within the trimmed video
+      const positionInClip = timelinePosition - clipStartTime;
+      const videoTime = currentClip.trimIn + positionInClip;
+      const clampedVideoTime = Math.min(videoTime, currentClip.trimOut);
+      
+      // Only seek when not playing (for scrubbing) or when clip changes
+      if (!isPlaying) {
+        video.currentTime = Math.max(0, clampedVideoTime);
+      }
+      
+      // Handle play/pause state
+      if (isPlaying && video.paused) {
+        // When starting playback, seek to correct position first
+        video.currentTime = Math.max(0, clampedVideoTime);
+        video.play().catch(console.error);
+      } else if (!isPlaying && !video.paused) {
+        video.pause();
+      }
+    } else {
+      // If we're outside this clip's range, pause the video
+      if (!video.paused) {
+        video.pause();
+      }
     }
   }, [currentTime, currentClip, isPlaying]);
-
-  // High-performance video sync using requestAnimationFrame
-  useEffect(() => {
-    if (!isPlaying || !currentClip) return;
-
-    let animationId: number;
-    let lastSyncTime = 0;
-    
-    const syncVideo = () => {
-      const video = videoRef.current;
-      if (!video || video.paused) return;
-
-      const now = performance.now();
-      // Throttle sync to 60fps max
-      if (now - lastSyncTime < 16.67) {
-        animationId = requestAnimationFrame(syncVideo);
-        return;
-      }
-      lastSyncTime = now;
-
-      const relativeTime = currentTime - currentClip.startTime + currentClip.trimIn;
-      const timeDiff = Math.abs(video.currentTime - relativeTime);
-      
-      // Only seek if significantly out of sync (reduces micro-seeks)
-      if (timeDiff > 0.05) { // Reduced threshold for better sync
-        video.currentTime = Math.max(0, relativeTime);
-      }
-      
-      animationId = requestAnimationFrame(syncVideo);
-    };
-
-    animationId = requestAnimationFrame(syncVideo);
-    return () => cancelAnimationFrame(animationId);
-  }, [isPlaying, currentClip, currentTime]);
 
   // Cleanup blob URL
   useEffect(() => {
@@ -236,7 +230,7 @@ export function Timeline() {
   const maxTime = Math.max(
     ...clips.map((clip) => clip.startTime + clip.duration),
     getTimelineDuration(),
-    20
+    10 // Minimum 10 seconds instead of 60
   );
   // Single track timeline - no need to calculate track count
 
@@ -305,6 +299,11 @@ export function Timeline() {
     selectClip(id);
   };
 
+  const handleDeselectClip = () => {
+    setSelectedClipId(null);
+    clearSelection();
+  };
+
   const handlePlayPause = () => {
     setIsPlaying(!isPlaying);
   };
@@ -332,26 +331,27 @@ export function Timeline() {
     setZoomLevel(zoomLevel);
   };
 
-  // Auto-play functionality - optimized for smooth 60fps
+  // Simple auto-play functionality
   useEffect(() => {
     if (!isPlaying) return;
 
     let animationId: number;
-    let lastTime = performance.now();
+    let startTime = performance.now();
+    let startTimelineTime = currentTime;
     
-    const updateTime = (currentTime: number) => {
-      const deltaTime = (currentTime - lastTime) / 1000; // Convert to seconds
-      lastTime = currentTime;
+    const updateTime = () => {
+      const elapsed = (performance.now() - startTime) / 1000; // Convert to seconds
+      const newTime = startTimelineTime + elapsed;
       
-      setCurrentTime(prev => {
-        const newTime = prev + deltaTime;
-        if (newTime >= maxTime) {
-          setIsPlaying(false);
-          return maxTime;
-        }
-        setPlayheadTime(newTime);
-        return newTime;
-      });
+      if (newTime >= maxTime) {
+        setIsPlaying(false);
+        setCurrentTime(maxTime);
+        setPlayheadTime(maxTime);
+        return;
+      }
+      
+      setCurrentTime(newTime);
+      setPlayheadTime(newTime);
       
       animationId = requestAnimationFrame(updateTime);
     };
@@ -361,49 +361,51 @@ export function Timeline() {
   }, [isPlaying, maxTime, setPlayheadTime]);
 
   return (
-    <div className="bg-white border-t border-gray-300 flex flex-col">
-      {/* Video Preview - 1920x1080 Aspect Ratio */}
-      <div className="relative bg-black flex items-center justify-center" style={{ aspectRatio: '16/9', minHeight: '400px' }}>
+    <div className="bg-white flex flex-col w-full">
+      {/* Video Preview */}
+      <div className="relative bg-gray-900 flex items-center justify-center m-4 rounded-lg overflow-hidden" style={{ aspectRatio: '16/9', minHeight: '400px' }}>
         {videoBlobUrl && currentClip ? (
           <div className="w-full h-full relative" style={{ minWidth: '100%', minHeight: '100%' }}>
-            <video
-              ref={videoRef}
-              src={videoBlobUrl}
-              className="w-full h-full"
-              controls={false}
-              muted
-              preload="auto"
-              playsInline
-              disablePictureInPicture
-              crossOrigin="anonymous"
-              style={{ 
-                width: '100%',
-                height: '100%',
-                objectFit: 'contain',
-                objectPosition: 'center',
-                willChange: 'transform',
-                transform: 'translateZ(0)', // Force hardware acceleration
-                backfaceVisibility: 'hidden',
-                perspective: '1000px',
-                  // High quality rendering
-                  imageRendering: 'high-quality'
-              }}
-            />
-            <div className="absolute top-4 left-4 text-white text-sm bg-black/70 px-3 py-2 rounded-lg font-medium">
-              {currentClip.name} - {displayTime.toFixed(1)}s
-            </div>
-            <div className="absolute top-4 right-4 text-white text-sm bg-black/70 px-3 py-2 rounded-lg font-medium">
-              {Math.floor(displayTime / 60)}:{(displayTime % 60).toFixed(1).padStart(4, '0')}
-            </div>
+                    <video
+                      ref={videoRef}
+                      src={videoBlobUrl}
+                      className="w-full h-full rounded-lg"
+                      controls={false}
+                      muted
+                      preload="metadata"
+                      playsInline
+                      disablePictureInPicture
+                      crossOrigin="anonymous"
+                      style={{ 
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                        objectPosition: 'center'
+                      }}
+                    />
+                    
+                    {/* Video Info Overlay */}
+                    <div className="absolute top-2 left-2 text-white text-xs bg-black/60 px-2 py-1 rounded font-mono">
+                      {currentClip.name} - {displayTime.toFixed(1)}s
+                    </div>
+                    <div className="absolute top-2 right-2 text-white text-xs bg-black/60 px-2 py-1 rounded font-mono">
+                      {Math.floor(displayTime / 60)}:{(displayTime % 60).toFixed(1).padStart(4, '0')}
+                    </div>
+                    {/* Timeline Position Info */}
+                    <div className="absolute bottom-2 left-2 text-white text-xs bg-black/60 px-2 py-1 rounded font-mono">
+                      Timeline: {currentTime.toFixed(1)}s
+                    </div>
+                    <div className="absolute bottom-2 right-2 text-white text-xs bg-black/60 px-2 py-1 rounded font-mono">
+                      Clip: {currentClip.startTime.toFixed(1)}s - {(currentClip.startTime + currentClip.duration).toFixed(1)}s
+                    </div>
           </div>
         ) : (
           <div className="text-white text-center">
-            <div className="text-6xl mb-4">🎬</div>
-            <div className="text-xl font-semibold mb-2">No video selected</div>
-            <div className="text-lg text-gray-300 mb-4">Import videos to see preview</div>
+            <div className="text-4xl mb-3">🎬</div>
+            <div className="text-lg font-medium mb-2">No video selected</div>
             {clips.length > 0 && (
-              <div className="text-sm text-gray-400 bg-black/30 px-4 py-2 rounded-lg inline-block">
-                {clips.length} clips available - click play to start
+              <div className="text-sm text-white/80 bg-black/40 px-3 py-1 rounded">
+                {clips.length} clips available
               </div>
             )}
           </div>
@@ -411,48 +413,69 @@ export function Timeline() {
       </div>
 
       {/* Controls */}
-      <div className="h-12 bg-gray-50 border-b border-gray-300 flex items-center px-4 gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-gray-600 hover:text-gray-900"
-          onClick={handleSkipToStart}
-        >
-          <SkipBack className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-gray-600 hover:text-gray-900"
-          onClick={handlePlayPause}
-        >
-          {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-gray-600 hover:text-gray-900"
-          onClick={handleSkipToEnd}
-        >
-          <SkipForward className="h-4 w-4" />
-        </Button>
-        <div className="flex-1" />
+      <div className="h-12 bg-gray-50 border-b border-gray-200 flex items-center px-4 gap-4">
+        {/* Playback Controls */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-600">Zoom:</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-gray-600 hover:text-blue-600 hover:bg-blue-100 rounded-lg"
+            onClick={handleSkipToStart}
+          >
+            <SkipBack className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`h-8 w-8 rounded-lg ${
+              isPlaying 
+                ? 'bg-red-500 text-white hover:bg-red-600' 
+                : 'bg-green-500 text-white hover:bg-green-600'
+            }`}
+            onClick={handlePlayPause}
+          >
+            {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-gray-600 hover:text-blue-600 hover:bg-blue-100 rounded-lg"
+            onClick={handleSkipToEnd}
+          >
+            <SkipForward className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Timeline Info */}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="bg-white px-3 py-1 rounded border">
+            <span className="text-sm font-mono text-gray-700">
+              {Math.floor(currentTime / 60)}:{(currentTime % 60).toFixed(1).padStart(4, '0')} / {Math.floor(maxTime / 60)}:{(maxTime % 60).toFixed(1).padStart(4, '0')}
+            </span>
+          </div>
+        </div>
+
+        {/* Zoom Controls */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-600">Zoom</span>
           <input
             type="range"
             min={minZoom}
             max={maxZoom}
             value={Math.max(minZoom, Math.min(maxZoom, scale))}
             onChange={(e) => handleZoomChange(Number(e.target.value))}
-            className="w-24"
+            className="w-20 h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer"
           />
         </div>
       </div>
 
       {/* Timeline */}
       <div className="h-80 overflow-auto">
-        <div className="relative" style={{ minWidth: 48 + maxTime * scale }}>
+        <div 
+          className="relative w-full" 
+          style={{ minWidth: Math.max(800, 48 + Math.max(maxTime * 2, 120) * scale) }}
+          onClick={handleDeselectClip}
+        >
           {/* Time ruler with dynamic scales */}
           <TimeRuler
             duration={maxTime}
@@ -473,12 +496,14 @@ export function Timeline() {
           />
 
           {/* Single Timeline Track */}
-          <div className="relative">
-            <div className="h-16 border-b border-gray-200 relative bg-gray-50">
-              <div className="absolute left-0 top-0 bottom-0 w-12 bg-gray-100 border-r border-gray-300 flex items-center justify-center">
-                <span className="text-xs text-gray-600">Timeline</span>
-              </div>
-            </div>
+          <div className="relative w-full" style={{ minWidth: Math.max(800, 48 + Math.max(maxTime * 2, 120) * scale) }}>
+                    <div className="h-16 border-b border-gray-200 relative bg-gray-50 w-full">
+                      <div className="absolute left-0 top-0 bottom-0 w-12 bg-gray-100 border-r border-gray-300 flex items-center justify-center">
+                        <span className="text-xs text-gray-600 font-medium">Tracks</span>
+                      </div>
+                      {/* Extend the track background to fill the full width */}
+                      <div className="absolute left-12 top-0 bottom-0 right-0 bg-gray-50"></div>
+                    </div>
 
             {/* Video clips */}
             {clips.map((clip) => (

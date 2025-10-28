@@ -114,43 +114,54 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96 max-w-full mx-4">
-        <h2 className="text-xl font-semibold mb-4">Export Video</h2>
-        
-        <div className="space-y-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+      <div className="bg-white/95 backdrop-blur-md rounded-2xl p-8 w-full max-w-md mx-4 shadow-2xl border border-white/20 animate-scale-in">
+        {/* Header */}
+        <div className="flex items-center space-x-3 mb-6">
+          <div className="w-10 h-10 bg-gradient-success rounded-xl flex items-center justify-center">
+            <span className="text-xl">📤</span>
+          </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <h2 className="text-2xl font-bold gradient-text">Export Video</h2>
+            <p className="text-sm text-gray-600">Save your timeline as a video file</p>
+          </div>
+        </div>
+        
+        <div className="space-y-6">
+          {/* Output Path */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
               Output Path
             </label>
-            <div className="flex space-x-2">
+            <div className="flex space-x-3">
               <input
                 type="text"
                 value={outputPath}
                 onChange={(e) => setOutputPath(e.target.value)}
                 placeholder="Select output file..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
                 disabled={isExporting}
               />
               <button
                 type="button"
                 onClick={handleBrowseFile}
                 disabled={isExporting}
-                className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                className="btn-gradient px-6 py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-all duration-300"
               >
                 Browse
               </button>
             </div>
           </div>
 
+          {/* Resolution */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
               Resolution
             </label>
             <select
               value={resolution}
               onChange={(e) => setResolution(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
               disabled={isExporting}
             >
               <option value="720p">720p (1280x720)</option>
@@ -159,39 +170,58 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => {
             </select>
           </div>
 
-          <div>
-            <p className="text-sm text-gray-600">
-              Clips in timeline: {timelineClips.length}
-            </p>
+          {/* Timeline Info */}
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-200/50">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-gradient-primary rounded-full" />
+              <span className="text-sm font-semibold text-gray-700">
+                Timeline: {timelineClips.length} clips
+              </span>
+            </div>
           </div>
 
+          {/* Progress Bar */}
           {isExporting && (
-            <div>
-              <div className="flex justify-between text-sm text-gray-600 mb-1">
-                <span>Exporting...</span>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm font-semibold text-gray-700">
+                <span className="flex items-center space-x-2">
+                  <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                  <span>Exporting...</span>
+                </span>
                 <span>{Math.round(exportProgress)}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                 <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-purple-500 to-blue-500 h-3 rounded-full transition-all duration-500 ease-out shadow-lg"
                   style={{ width: `${exportProgress}%` }}
                 />
               </div>
             </div>
           )}
 
-          <div className="flex space-x-3 pt-4">
+          {/* Action Buttons */}
+          <div className="flex space-x-4 pt-4">
             <button
               onClick={handleExport}
               disabled={isExporting || timelineClips.length === 0}
-              className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="btn-gradient-success flex-1 px-6 py-3 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2"
             >
-              {isExporting ? 'Exporting...' : 'Export Video'}
+              {isExporting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Exporting...</span>
+                </>
+              ) : (
+                <>
+                  <span>📤</span>
+                  <span>Export Video</span>
+                </>
+              )}
             </button>
             <button
               onClick={onClose}
               disabled={isExporting}
-              className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 disabled:bg-gray-200 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:scale-105"
             >
               Cancel
             </button>

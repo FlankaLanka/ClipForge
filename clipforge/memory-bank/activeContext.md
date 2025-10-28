@@ -1,14 +1,20 @@
 # ClipForge - Active Context
 
 ## Current Work Focus
-**Phase 4: Timeline Video Editor** (Completed)
-- ✅ Implemented complete timeline-based video editing system
-- ✅ Created single-track timeline with drag, trim, split, and delete functionality
-- ✅ Added real-time 60fps video preview synchronized with timeline
-- ✅ Implemented FFmpeg-based export with proper audio/video handling
-- ✅ Built intuitive timeline controls with playhead, scrub, zoom, and pan
+**Phase 5: Video Performance & Timeline Optimization** (Completed)
+- ✅ Fixed video preview performance issues (1 FPS → 60 FPS)
+- ✅ Implemented proper video timeline parsing with trim support
+- ✅ Added click-outside handling for clip deselection
+- ✅ Created infinite timeline ruler extending beyond video clips
+- ✅ Optimized video sync logic to eliminate constant seeking
 
 ## Recent Major Achievements
+- ✅ **Video Performance Fix**: Resolved 1 FPS performance issue with optimized sync logic
+- ✅ **Timeline Parsing**: Proper video timeline parsing respecting trim start/end points
+- ✅ **Infinite Ruler**: Timeline ruler now extends infinitely beyond current clips
+- ✅ **Dynamic Duration**: Timeline duration shows actual end of last video clip
+- ✅ **Clip Deselection**: Click outside clips to hide split/delete buttons
+- ✅ **Video Sync Optimization**: Eliminated constant video seeking during playback
 - ✅ **Timeline Video Editor**: Complete timeline-based video editing system
 - ✅ **Single Track Design**: Simplified single-track timeline for easy editing
 - ✅ **Real-time Preview**: 60fps video preview synchronized with timeline
@@ -19,25 +25,27 @@
 - ✅ **High-Quality Recording**: 1920x1080 canvas recording at 60 FPS with 20 Mbps video + 256 kbps audio
 
 ## Current System Architecture
-- **Timeline Editor**: Single-track timeline with video clip management
-- **Video Preview**: 1920x1080 video preview synchronized with timeline
-- **Timeline Controls**: Playhead, scrub controls, zoom, and pan
-- **Clip Editing**: Drag, trim, split, and delete video clips
+- **Timeline Editor**: Single-track timeline with video clip management and infinite ruler
+- **Video Preview**: 60fps video preview with optimized sync and proper timeline parsing
+- **Timeline Controls**: Playhead, scrub controls, zoom, and pan with infinite scrolling
+- **Clip Editing**: Drag, trim, split, and delete video clips with click-outside deselection
 - **Timeline Export**: FFmpeg-based export with proper audio/video handling
 - **Video Import**: Drag-and-drop video import with automatic timeline addition
 - **Canvas Recording**: 1920x1080 canvas recording system for screen/webcam capture
 - **Audio Mixing**: Web Audio API for real-time voice source mixing
+- **Performance**: Optimized video sync eliminating constant seeking during playback
 
 ## Key Technical Features
-- **Timeline System**: Single-track timeline with video clip management
-- **Real-time Preview**: 60fps video preview synchronized with timeline
-- **Timeline Controls**: Playhead, scrub controls, zoom, and pan
-- **Clip Editing**: Drag, trim, split, and delete video clips
+- **Timeline System**: Single-track timeline with video clip management and infinite ruler
+- **Real-time Preview**: 60fps video preview with optimized sync and proper timeline parsing
+- **Timeline Controls**: Playhead, scrub controls, zoom, and pan with infinite scrolling
+- **Clip Editing**: Drag, trim, split, and delete video clips with click-outside deselection
 - **Timeline Export**: FFmpeg-based export with proper audio/video handling
 - **Video Import**: Drag-and-drop video import with automatic timeline addition
 - **Canvas Recording**: 1920x1080 canvas recording system for screen/webcam capture
 - **Audio Processing**: Multiple voice sources mixed into single audio track
 - **Quality Settings**: 20 Mbps video, 256 kbps audio, 60 FPS recording
+- **Performance Optimization**: Eliminated constant video seeking, 60fps smooth playback
 
 ## Active Components
 - **Timeline**: Main timeline editor with video clip management
@@ -57,12 +65,14 @@
 - All recording functionality is complete and ready for testing
 
 ## Current Status
-- ✅ Timeline video editor fully functional
-- ✅ Real-time 60fps video preview working
-- ✅ Timeline controls (playhead, scrub, zoom, pan) working
-- ✅ Clip editing (drag, trim, split, delete) working
+- ✅ Timeline video editor fully functional with infinite ruler
+- ✅ Real-time 60fps video preview working with optimized sync
+- ✅ Timeline controls (playhead, scrub, zoom, pan) working with infinite scrolling
+- ✅ Clip editing (drag, trim, split, delete) working with click-outside deselection
 - ✅ FFmpeg-based export with proper audio/video handling
 - ✅ Video import with automatic timeline addition
 - ✅ Recording system fully functional
 - ✅ High-quality 1920x1080 output
+- ✅ Video performance optimized (1 FPS → 60 FPS)
+- ✅ Timeline duration shows actual end of video clips
 - 🎯 **Ready for user testing and feedback**

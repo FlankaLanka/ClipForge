@@ -173,12 +173,14 @@ export function VideoClip({
   }, [isDragging, isTrimming, dragStart, trimStart, clip, scale, onUpdatePosition, onUpdateTrim]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('.trim-handle, .clip-button')) return;
+    // Only handle drag if clicking on the center draggable area
+    if (!(e.target as HTMLElement).closest('.clip-draggable-area')) return;
     
     // Don't start dragging if we're already trimming
     if (isTrimming) return;
     
     e.preventDefault();
+    e.stopPropagation(); // Prevent timeline deselection
     onSelect();
     setIsDragging(true);
     setDragStart({
@@ -239,76 +241,82 @@ export function VideoClip({
   return (
     <div
       ref={clipRef}
-      className={`absolute rounded cursor-move select-none transition-shadow ${
-        isSelected ? 'ring-2 ring-blue-500 shadow-lg shadow-blue-500/20' : ''
-      }`}
+      className={`absolute rounded select-none ${
+        isDragging ? '' : 'transition-all duration-200'
+      } ${
+        isSelected 
+          ? 'ring-2 ring-blue-400 shadow-lg' 
+          : 'hover:shadow-md'
+      } ${isDragging ? 'opacity-70' : ''}`}
       style={{
         left: `${left}px`,
         top: `${top}px`,
         width: `${width}px`,
         height: '56px',
         marginTop: '4px',
-        backgroundColor: clip.color,
+        background: clip.color,
         opacity: isDragging ? 0.7 : 1,
       }}
-      onMouseDown={handleMouseDown}
+      onClick={(e) => {
+        e.stopPropagation(); // Prevent timeline deselection
+        onSelect();
+      }}
     >
       {/* Trim handle - Start */}
       <div
-        className="trim-handle absolute left-0 top-0 bottom-0 w-2 bg-white/20 hover:bg-white/40 cursor-ew-resize transition-colors"
+        className="trim-handle absolute left-0 top-0 bottom-0 w-2 bg-white/40 hover:bg-white/60 cursor-ew-resize rounded-l"
         onMouseDown={handleTrimStart}
-      >
-        <div className="absolute left-0.5 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-full" />
-      </div>
+      />
 
-      {/* Content */}
-      <div className="px-3 py-2 overflow-hidden h-full flex flex-col justify-between">
-        <div className="text-white text-xs truncate">{clip.name}</div>
-        <div className="text-white/60 text-xs">
-          {clip.duration.toFixed(1)}s
+      {/* Draggable center area - only this area allows moving the clip */}
+      <div 
+        className="clip-draggable-area absolute left-2 right-2 top-0 bottom-0 cursor-move"
+        onMouseDown={handleMouseDown}
+      >
+        {/* Content */}
+        <div className="px-3 py-2 overflow-hidden h-full flex items-center justify-between relative z-10">
+          {/* Start Time */}
+          <div className="text-white text-xs font-mono">
+            {formatTime(clip.trimStart)}
+          </div>
+          
+          {/* Center: Filename and Duration */}
+          <div className="flex-1 text-center px-2">
+            <div className="text-white text-xs font-medium truncate">
+              {clip.name.replace(/\.[^/.]+$/, '')}
+            </div>
+            <div className="text-white/80 text-xs">
+              {clip.duration.toFixed(1)}s
+            </div>
+          </div>
+          
+          {/* End Time */}
+          <div className="text-white text-xs font-mono">
+            {formatTime(clip.trimEnd)}
+          </div>
         </div>
       </div>
-
-      {/* Time indicators - Start and End of video content */}
-      <div className="absolute top-1 left-1 bg-black/80 text-white text-xs px-1.5 py-0.5 rounded text-[10px] font-mono border border-white/20 shadow-sm">
-        {formatTime(clip.trimStart)}
-      </div>
-      <div className="absolute top-1 right-1 bg-black/80 text-white text-xs px-1.5 py-0.5 rounded text-[10px] font-mono border border-white/20 shadow-sm">
-        {formatTime(clip.trimEnd)}
-      </div>
       
-      {/* Video content range indicator */}
-      <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 bg-black/60 text-white text-[9px] px-2 py-0.5 rounded font-mono">
-        {formatTime(clip.trimStart)} - {formatTime(clip.trimEnd)}
-      </div>
-      
-      {/* Original video duration indicator */}
-      <div className="absolute bottom-1 right-1 bg-blue-600/80 text-white text-[9px] px-1.5 py-0.5 rounded font-mono">
-        /{formatTime(clip.originalDuration)}
-      </div>
-      
-      {/* Collision warning indicator */}
+      {/* Collision warning */}
       {collisionDetected && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-500/90 text-white text-xs px-2 py-1 rounded font-semibold shadow-lg">
-          Cannot extend past other clips
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-500 text-white text-xs px-2 py-1 rounded font-medium">
+          Cannot extend
         </div>
       )}
 
       {/* Trim handle - End */}
       <div
-        className="trim-handle absolute right-0 top-0 bottom-0 w-2 bg-white/20 hover:bg-white/40 cursor-ew-resize transition-colors"
+        className="trim-handle absolute right-0 top-0 bottom-0 w-2 bg-white/40 hover:bg-white/60 cursor-ew-resize rounded-r"
         onMouseDown={handleTrimEnd}
-      >
-        <div className="absolute right-0.5 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-full" />
-      </div>
+      />
 
       {/* Action buttons - appear when selected */}
       {isSelected && (
-        <div className="absolute -top-8 left-0 flex gap-1 clip-button">
+        <div className="absolute -top-8 left-0 flex gap-1">
           <Button
             variant="secondary"
             size="icon"
-            className="h-6 w-6 bg-gray-200 hover:bg-gray-300 text-gray-700"
+            className="h-6 w-6 bg-blue-500 hover:bg-blue-600 text-white text-xs"
             onClick={(e) => {
               e.stopPropagation();
               onSplit(clip.id);
@@ -319,7 +327,7 @@ export function VideoClip({
           <Button
             variant="secondary"
             size="icon"
-            className="h-6 w-6 bg-gray-200 hover:bg-red-500 hover:text-white text-gray-700"
+            className="h-6 w-6 bg-red-500 hover:bg-red-600 text-white text-xs"
             onClick={(e) => {
               e.stopPropagation();
               onDelete(clip.id);

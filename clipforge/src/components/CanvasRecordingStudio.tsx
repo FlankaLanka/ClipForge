@@ -869,62 +869,71 @@ const CanvasRecordingStudio: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+              {/* Header */}
+              <div className="bg-white shadow-lg border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">🎬 Canvas Recording Studio</h1>
-              <p className="text-sm text-gray-600 mt-1">Canvas-based sprites with center origin (0,0) • Drag, resize, rotate • Records at 1920x1080</p>
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
+                <span className="text-2xl">🎬</span>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Recording Studio</h1>
+              </div>
             </div>
             
             {/* Recording Controls */}
             <div className="space-y-4">
               {/* Output Folder Selection */}
-              <div className="flex items-center space-x-2">
-                <label className="text-sm font-medium text-gray-700 min-w-0">
-                  Output:
-                </label>
-                <input
-                  type="text"
-                  value={outputFolder || 'No folder selected'}
-                  readOnly
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
-                />
-                <button
-                  onClick={selectOutputFolder}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                >
-                  Choose Folder
-                </button>
+              <div className="flex items-center space-x-3">
+                        <label className="text-sm font-semibold text-gray-900 min-w-0">
+                          Output:
+                        </label>
+                <div className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      value={outputFolder || 'No folder selected'}
+                      readOnly
+                      className="flex-1 px-4 py-2 bg-white/90 backdrop-blur-sm border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 text-sm min-w-64"
+                      placeholder="Select output folder..."
+                    />
+                  <button
+                    onClick={selectOutputFolder}
+                    className="btn-gradient px-4 py-2 rounded-xl font-semibold text-sm hover:scale-105 transition-all duration-300"
+                  >
+                    Choose Folder
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center space-x-4">
-                {recordingState.isRecording && (
-                  <div className="flex items-center space-x-3 bg-red-50 px-4 py-2 rounded-lg">
-                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium text-red-700">
-                      Recording: {formatTime(recordingTime)}
-                    </span>
-                  </div>
-                )}
+                        {recordingState.isRecording && (
+                          <div className="flex items-center space-x-3 bg-red-100 backdrop-blur-sm px-4 py-2 rounded-xl border border-red-300">
+                            <div className="w-3 h-3 bg-red-500 rounded-full pulse-recording"></div>
+                            <span className="text-sm font-semibold text-red-900">
+                              Recording: {formatTime(recordingTime)}
+                            </span>
+                          </div>
+                        )}
                 
-                <div className="flex space-x-2">
+                <div className="flex space-x-3">
                   {!recordingState.isRecording ? (
-                    <button
-                      onClick={startRecording}
-                      disabled={!outputFolder}
-                      className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium text-lg shadow-lg"
-                    >
-                      🔴 Start Recording
-                    </button>
+                      <button
+                        onClick={startRecording}
+                        disabled={!outputFolder}
+                        className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-xl font-bold text-lg shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-all duration-300 flex items-center space-x-2"
+                      >
+                        <div className="w-4 h-4 bg-white rounded-full"></div>
+                        <span>Start Recording</span>
+                      </button>
                   ) : (
                     <button
                       onClick={stopRecording}
-                      className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium text-lg shadow-lg"
+                      className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-xl font-bold text-lg shadow-xl hover:scale-105 transition-all duration-300 flex items-center space-x-2"
                     >
-                      ⏹️ Stop Recording
+                      <div className="w-4 h-4 bg-white rounded"></div>
+                      <span>Stop Recording</span>
                     </button>
                   )}
                 </div>
@@ -934,67 +943,75 @@ const CanvasRecordingStudio: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Panel - Add Sources */}
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">🎮 Add Sprites</h2>
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-8 h-8 bg-gradient-secondary rounded-lg flex items-center justify-center">
+                  <span className="text-lg">🎮</span>
+                </div>
+                <h2 className="text-lg font-semibold text-gray-800">Add Sources</h2>
+              </div>
               
               {/* Screen Recording */}
               <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Screen Sprite</h3>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center space-x-2">
+                  <span>🖥️</span>
+                  <span>Screen Sprite</span>
+                </h3>
                 <button
                   onClick={addScreenSprite}
-                  className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center space-x-2"
+                  className="btn-gradient w-full px-4 py-4 rounded-xl font-semibold flex items-center justify-center space-x-3 hover:scale-105 transition-all duration-300"
                 >
-                  <span>🖥️</span>
+                  <span className="text-xl">🖥️</span>
                   <span>Add Screen Sprite</span>
                 </button>
-                <p className="text-xs text-gray-500 mt-2">
-                  Select screen or window to capture
-                </p>
               </div>
 
               {/* Webcam */}
               <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Webcam Sprite</h3>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center space-x-2">
+                  <span>📹</span>
+                  <span>Webcam Sprite</span>
+                </h3>
                 <button
                   onClick={() => setWebcamDialogOpen(true)}
-                  className="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center space-x-2"
+                  className="btn-gradient-success w-full px-4 py-4 rounded-xl font-semibold flex items-center justify-center space-x-3 hover:scale-105 transition-all duration-300"
                 >
-                  <span>📹</span>
+                  <span className="text-xl">📹</span>
                   <span>Add Webcam Sprite</span>
                 </button>
-                <p className="text-xs text-gray-500 mt-2">
-                  Choose which camera to use
-                </p>
               </div>
 
               {/* Voice */}
               <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Voice Source</h3>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center space-x-2">
+                  <span>🎤</span>
+                  <span>Voice Source</span>
+                </h3>
                 <button
                   onClick={() => setVoiceDialogOpen(true)}
-                  className="w-full bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center justify-center space-x-2"
+                  className="btn-gradient-secondary w-full px-4 py-4 rounded-xl font-semibold flex items-center justify-center space-x-3 hover:scale-105 transition-all duration-300"
                 >
-                  <span>🎤</span>
+                  <span className="text-xl">🎤</span>
                   <span>Add Voice Source</span>
                 </button>
-                <p className="text-xs text-gray-500 mt-2">
-                  Audio-only source for recordings
-                </p>
                 
                 {/* Voice Meters */}
                 {sprites.filter(s => s.type === 'voice').length > 0 && (
                   <div className="mt-4 space-y-3">
-                    <h4 className="text-xs font-medium text-gray-600">Audio Levels</h4>
+                    <h4 className="text-xs font-semibold text-gray-600 flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-gradient-secondary rounded-full" />
+                      <span>Audio Levels</span>
+                    </h4>
                     {sprites
                       .filter(s => s.type === 'voice')
                       .map(sprite => (
-                        <div key={sprite.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <div key={sprite.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200/50">
                           <div className="flex-1">
-                            <div className="text-sm font-medium text-gray-900">{sprite.name}</div>
+                            <div className="text-sm font-semibold text-gray-900 mb-2">{sprite.name}</div>
                             <VoiceMeter 
                               audioStream={sprite.audioStream} 
                               size="small" 
@@ -1003,7 +1020,7 @@ const CanvasRecordingStudio: React.FC = () => {
                           </div>
                           <button
                             onClick={() => removeSprite(sprite.id)}
-                            className="ml-2 text-red-500 hover:text-red-700 text-sm"
+                            className="ml-3 text-red-500 hover:text-red-700 text-lg hover:scale-110 transition-all duration-300"
                           >
                             ×
                           </button>
@@ -1015,87 +1032,107 @@ const CanvasRecordingStudio: React.FC = () => {
 
               {/* Active Sprites */}
               <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Active Sprites ({sprites.length})</h3>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-gradient-primary rounded-full" />
+                  <span>Active Sprites ({sprites.length})</span>
+                </h3>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {sprites.map((sprite) => (
+                  {sprites.map((sprite, index) => (
                     <div
                       key={sprite.id}
-                      className={`flex items-center justify-between p-3 rounded-lg ${
-                        sprite.isSelected ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-50'
+                      className={`flex items-center justify-between p-3 rounded-xl transition-all duration-300 hover:scale-102 ${
+                        sprite.isSelected 
+                          ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-300 shadow-md' 
+                          : 'bg-gradient-to-r from-gray-50 to-gray-100 hover:from-purple-50 hover:to-blue-50'
                       }`}
+                      style={{ animationDelay: `${index * 50}ms` }}
                     >
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-3">
                         <span className="text-lg">
                           {sprite.type === 'monitor' ? '🖥️' : sprite.type === 'webcam' ? '📹' : '🎤'}
                         </span>
-                        <span className="text-sm font-medium">
-                          {sprite.name}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {Math.round(sprite.width)}x{Math.round(sprite.height)}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          ({Math.round(sprite.x)}, {Math.round(sprite.y)})
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold text-gray-900">
+                            {sprite.name}
+                          </span>
+                          <div className="flex items-center space-x-2 text-xs text-gray-500">
+                            <span>{Math.round(sprite.width)}x{Math.round(sprite.height)}</span>
+                            <span>•</span>
+                            <span>({Math.round(sprite.x)}, {Math.round(sprite.y)})</span>
+                          </div>
+                        </div>
                       </div>
                       <button
                         onClick={() => removeSprite(sprite.id)}
-                        className="text-red-500 hover:text-red-700 text-lg"
+                        className="text-red-500 hover:text-red-700 text-lg hover:scale-110 transition-all duration-300"
                       >
                         ×
                       </button>
                     </div>
                   ))}
-                  {sprites.length === 0 && (
-                    <p className="text-sm text-gray-500 text-center py-4">
-                      No sprites added yet
-                    </p>
-                  )}
+                          {sprites.length === 0 && (
+                            <div className="text-center py-6">
+                              <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center mx-auto mb-3">
+                                <span className="text-2xl">🎭</span>
+                              </div>
+                              <p className="text-sm text-gray-700">No sprites added yet</p>
+                            </div>
+                          )}
                 </div>
               </div>
             </div>
 
-            {/* Instructions */}
-            <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
-              <h3 className="text-sm font-semibold text-blue-900 mb-2">💡 Canvas Controls</h3>
-              <ul className="text-xs text-blue-800 space-y-1">
-                <li>• Click sprites to select them</li>
-                <li>• Drag selected sprites to move</li>
-                <li>• Drag blue handles to resize</li>
-                <li>• 0,0 is at the center of canvas</li>
-                <li>• Yellow = selected, Blue = unselected</li>
-              </ul>
-            </div>
+                    {/* Instructions */}
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <h3 className="text-sm font-medium text-gray-700 mb-2">Controls</h3>
+                      <ul className="text-xs text-gray-600 space-y-1">
+                        <li>• Click to select • Drag to move</li>
+                        <li>• Drag handles to resize</li>
+                        <li>• Center origin (0,0)</li>
+                      </ul>
+                    </div>
           </div>
 
           {/* Center - Canvas Preview */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">🎨 Canvas Preview (1920x1080)</h2>
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
+                  <span className="text-lg">🎨</span>
+                </div>
+                <div>
+                        <h2 className="text-lg font-semibold text-gray-800">Preview</h2>
+                </div>
+              </div>
               
-              <div className="relative bg-black rounded-lg overflow-hidden" style={{ aspectRatio: '16/9', minHeight: '400px' }}>
-            <CanvasPreview
-              sprites={sprites}
-              onSpriteMove={handleSpriteMove}
-              onSpriteResize={handleSpriteResize}
-              onSpriteRotate={handleSpriteRotate}
-              onSpriteSelect={handleSpriteSelect}
-              onSpriteRemove={removeSprite}
-              onSpriteMoveToFront={handleSpriteMoveToFront}
-              onSpriteMoveToBack={handleSpriteMoveToBack}
-              onSpriteChangeSource={handleSpriteChangeSource}
-            />
+              <div className="relative bg-gradient-to-br from-gray-900 to-black rounded-2xl overflow-hidden shadow-2xl" style={{ aspectRatio: '16/9', minHeight: '400px' }}>
+                <CanvasPreview
+                  sprites={sprites}
+                  onSpriteMove={handleSpriteMove}
+                  onSpriteResize={handleSpriteResize}
+                  onSpriteRotate={handleSpriteRotate}
+                  onSpriteSelect={handleSpriteSelect}
+                  onSpriteRemove={removeSprite}
+                  onSpriteMoveToFront={handleSpriteMoveToFront}
+                  onSpriteMoveToBack={handleSpriteMoveToBack}
+                  onSpriteChangeSource={handleSpriteChangeSource}
+                />
               </div>
 
               {/* Preview Info */}
-              <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
-                <div>
-                  {screenStream && <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full mr-2">🖥️ Screen</span>}
-                  {webcamStream && <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full">📹 Webcam</span>}
-                  <span className="text-gray-500">Sprites: {sprites.length}</span>
-                </div>
-                <div>
-                  Canvas • Center Origin • 1920x1080 • Desktop Save
+              <div className="mt-4 flex items-center justify-between text-sm">
+                <div className="flex items-center space-x-3">
+                  {screenStream && (
+                    <span className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full text-xs font-semibold">
+                      🖥️ Screen
+                    </span>
+                  )}
+                  {webcamStream && (
+                    <span className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full text-xs font-semibold">
+                      📹 Webcam
+                    </span>
+                  )}
+                  <span className="text-gray-600 font-medium">Sprites: {sprites.length}</span>
                 </div>
               </div>
             </div>
