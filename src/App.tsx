@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import "./App.css";
 import { useEditorStore } from "./state/useEditorStore";
 import { useTimelineStore } from "./state/timelineStore";
-import MediaPanel from "./components/MediaPanel";
+import MediaPanel from "./components/MediaPanelNew";
 import { Timeline } from "./components/Timeline";
 import RecordingTab from "./components/RecordingTab";
 import AIToolsTab from "./components/AIToolsTab";
@@ -12,10 +12,8 @@ import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { Menu, X, HelpCircle, Download, Play, Video, Sparkles } from "lucide-react";
 
 const App: React.FC = () => {
-  console.log('App component rendering...');
   const { clips, timelineClips } = useEditorStore();
   const { clips: timelineClipsNew, getTimelineDuration } = useTimelineStore();
-  console.log('Current clips count:', clips.length);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'editor' | 'recording' | 'ai-tools'>('editor');

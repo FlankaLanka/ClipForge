@@ -1,14 +1,23 @@
 # ClipForge - Active Context
 
 ## Current Work Focus
-**Phase 6: AI Video Polishing Tools** (Completed)
-- ✅ Added AI Video Tools tab with AI Video Upscaler and AI Style Transfer
-- ✅ Implemented AI video upscaling with multiple models (Real-ESRGAN, ESRGAN, Waifu2x)
-- ✅ Enhanced AI style transfer with more styles and better processing
-- ✅ Built comprehensive UI for video polishing tools
-- ✅ Added OpenAI API key management and validation
+**Phase 8: Timeline Functionality & UX Enhancements** (Completed)
+- ✅ **Split Functionality Fix**: Fixed split clip functionality to properly calculate durations and timeline positions
+- ✅ **Zoom Enhancement**: Increased minimum zoom out level to allow 4x more zoom out (1 pixel per second minimum)
+- ✅ **Manual Timeline Addition**: Changed video import behavior to require double-click for timeline addition
+- ✅ **Enhanced MediaPanel UI**: Added visual indicators for videos on timeline vs imported only
+- ✅ **Improved User Control**: Users now have full control over when videos are added to timeline
+- ✅ **Code Cleanup**: Removed old debug logs and fixed syntax errors
+- ✅ **Import/Export Fixes**: Resolved destructuring issues with timeline store imports
 
 ## Recent Major Achievements
+- ✅ **Split Functionality Fix**: Fixed split clip functionality to properly calculate durations and timeline positions
+- ✅ **Zoom Enhancement**: Increased minimum zoom out level to allow 4x more zoom out (1 pixel per second minimum)
+- ✅ **Manual Timeline Addition**: Videos no longer automatically added to timeline - users double-click to add
+- ✅ **Enhanced MediaPanel**: Visual indicators show which videos are on timeline vs imported only
+- ✅ **Improved User Control**: Full user control over timeline addition with clear UI feedback
+- ✅ **Code Quality**: Removed old debug logs and fixed syntax errors for cleaner codebase
+- ✅ **Import Fixes**: Resolved destructuring issues with timeline store imports
 - ✅ **AI Video Tools Tab**: Complete AI-powered video polishing and enhancement system
 - ✅ **AI Video Upscaler**: Upscale videos using multiple AI models with quality options
 - ✅ **AI Style Transfer**: Enhanced style transfer with more artistic styles and better processing
@@ -24,7 +33,7 @@
 - ✅ **Real-time Preview**: 60fps video preview synchronized with timeline
 - ✅ **Timeline Export**: FFmpeg-based export with proper audio/video handling
 - ✅ **Timeline Controls**: Playhead, scrub controls, zoom, and pan functionality
-- ✅ **Video Import**: Drag-and-drop video import with automatic timeline addition
+- ✅ **Video Import**: Drag-and-drop video import with manual timeline addition
 - ✅ **Clip Editing**: Drag, trim, split, and delete video clips
 - ✅ **High-Quality Recording**: 1920x1080 canvas recording at 60 FPS with 20 Mbps video + 256 kbps audio
 
@@ -34,7 +43,7 @@
 - **Timeline Controls**: Playhead, scrub controls, zoom, and pan with infinite scrolling
 - **Clip Editing**: Drag, trim, split, and delete video clips with click-outside deselection
 - **Timeline Export**: FFmpeg-based export with proper audio/video handling
-- **Video Import**: Drag-and-drop video import with automatic timeline addition
+- **Video Import**: Drag-and-drop video import with manual timeline addition (double-click to add)
 - **Canvas Recording**: 1920x1080 canvas recording system for screen/webcam capture
 - **Audio Mixing**: Web Audio API for real-time voice source mixing
 - **Performance**: Optimized video sync eliminating constant seeking during playback
@@ -45,7 +54,7 @@
 - **Timeline Controls**: Playhead, scrub controls, zoom, and pan with infinite scrolling
 - **Clip Editing**: Drag, trim, split, and delete video clips with click-outside deselection
 - **Timeline Export**: FFmpeg-based export with proper audio/video handling
-- **Video Import**: Drag-and-drop video import with automatic timeline addition
+- **Video Import**: Drag-and-drop video import with manual timeline addition (double-click to add)
 - **Canvas Recording**: 1920x1080 canvas recording system for screen/webcam capture
 - **Audio Processing**: Multiple voice sources mixed into single audio track
 - **Quality Settings**: 20 Mbps video, 256 kbps audio, 60 FPS recording
@@ -56,7 +65,7 @@
 - **VideoClip**: Individual video clip component with drag, trim, split, delete
 - **TimeRuler**: Dynamic time ruler with zoom-adaptive markers
 - **ScrubbablePlayhead**: Draggable playhead for timeline navigation
-- **MediaPanel**: Video import panel with automatic timeline addition
+- **MediaPanel**: Video import panel with manual timeline addition and visual indicators
 - **ExportModal**: FFmpeg-based export with file dialog integration
 - **CanvasRecordingStudio**: Recording interface with source management
 - **CanvasPreview**: 1920x1080 canvas with sprite rendering and interaction
@@ -73,8 +82,10 @@
 - ✅ Real-time 60fps video preview working with optimized sync
 - ✅ Timeline controls (playhead, scrub, zoom, pan) working with infinite scrolling
 - ✅ Clip editing (drag, trim, split, delete) working with click-outside deselection
+- ✅ Split functionality properly calculates durations and timeline positions
+- ✅ Enhanced zoom out capability (4x more zoom out than before)
 - ✅ FFmpeg-based export with proper audio/video handling
-- ✅ Video import with automatic timeline addition
+- ✅ Video import with manual timeline addition (double-click to add)
 - ✅ Recording system fully functional
 - ✅ High-quality 1920x1080 output
 - ✅ Video performance optimized (1 FPS → 60 FPS)

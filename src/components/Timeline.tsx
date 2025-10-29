@@ -4,7 +4,7 @@ import { TimeRuler } from './TimeRuler';
 import { ScrubbablePlayhead } from './ScrubbablePlayhead';
 import { Play, Pause, SkipBack, SkipForward } from 'lucide-react';
 import { Button } from './ui/button';
-import { useTimelineStore } from '../state/timelineStore';
+import { useTimelineStore, TimelineClip } from '../state/timelineStore';
 import { invoke } from '@tauri-apps/api/core';
 
 export function Timeline() {
@@ -12,16 +12,13 @@ export function Timeline() {
     clips: timelineClips,
     playheadTime,
     setPlayheadTime,
-    zoomLevel,
     setZoomLevel,
-    addClip,
     moveClip,
     trimClip,
     splitClip,
     deleteClip,
     selectClip,
     clearSelection,
-    selectedClipIds,
     getTimelineDuration,
   } = useTimelineStore();
 
@@ -82,7 +79,7 @@ export function Timeline() {
       }
       
       console.log('Loading video file:', filePath);
-      const fileData = await invoke('read_file_bytes', { filePath });
+      const fileData = await invoke('read_file_bytes', { filePath }) as number[];
       console.log('File data length:', fileData.length, 'bytes');
       
       // Detect video format from file extension
@@ -239,7 +236,7 @@ export function Timeline() {
     const longestVideo = Math.max(...clips.map(clip => clip.originalDuration), 0);
     const minTimeSeconds = Math.max(60, longestVideo * 2);
     const timelineWidth = 800; // Approximate timeline width
-    return Math.max(4, timelineWidth / minTimeSeconds); // Reduced from 20 to 4 (5x lower)
+    return Math.max(1, timelineWidth / minTimeSeconds); // Reduced from 4 to 1 (4x more zoom out)
   };
 
   const minZoom = calculateMinZoom();

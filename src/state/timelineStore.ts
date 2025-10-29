@@ -258,24 +258,32 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
       const clip = state.clips.find(c => c.id === id);
       if (!clip) return state;
 
-      // Calculate midpoint in source video
-      const midpoint = splitTime - clip.startTime;
-      const midSrcTime = clip.trimIn + midpoint;
-
+      // Calculate the split point relative to the clip's timeline position
+      const splitOffset = splitTime - clip.startTime;
+      
+      // Calculate the corresponding position in the source video
+      const sourceSplitTime = clip.trimIn + splitOffset;
+      
+      // Calculate half duration for each clip
+      const halfDuration = splitOffset;
+      
       // Create left clip (first half)
       const leftClip: TimelineClip = {
         ...clip,
         id: `clip-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        endTime: splitTime,
-        trimOut: midSrcTime
+        endTime: splitTime, // Ends at split point
+        trimOut: sourceSplitTime, // Source ends at split point
+        duration: halfDuration // Half the original duration
       };
 
       // Create right clip (second half)
       const rightClip: TimelineClip = {
         ...clip,
         id: `clip-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        startTime: splitTime,
-        trimIn: midSrcTime
+        startTime: splitTime, // Starts at split point
+        trimIn: sourceSplitTime, // Source starts at split point
+        endTime: clip.endTime, // Ends at original end time
+        duration: clip.duration - halfDuration // Remaining duration
       };
 
       return {

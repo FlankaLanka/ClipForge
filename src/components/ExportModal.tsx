@@ -76,6 +76,10 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => {
         trim_out: clip.trimOut
       }));
 
+      // Debug: Log the data being sent to export
+      console.log('Exporting timeline with clips:', videoClips);
+      console.log('Timeline clips from store:', timelineClips);
+
       // Simulate progress updates
       const progressInterval = setInterval(() => {
         setExportProgress(prev => {

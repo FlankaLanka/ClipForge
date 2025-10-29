@@ -155,10 +155,13 @@ pub async fn export_timeline(params: ExportParams) -> Result<String, String> {
     // Build FFmpeg command for timeline export
     let mut args = vec!["-y".to_string()]; // Overwrite output file
 
-    // Add input files
+    // Add input files (avoid duplicates)
+    let mut unique_inputs = std::collections::HashSet::new();
     for clip in &sorted_clips {
-        args.push("-i".to_string());
-        args.push(clip.file_path.clone());
+        if unique_inputs.insert(clip.file_path.clone()) {
+            args.push("-i".to_string());
+            args.push(clip.file_path.clone());
+        }
     }
 
     // Build complex filter for timeline composition with gaps and audio
@@ -184,14 +187,28 @@ pub async fn export_timeline(params: ExportParams) -> Result<String, String> {
     );
     filter_parts.push(black_audio);
 
+    // Create mapping from file paths to input indices
+    let mut input_map = std::collections::HashMap::new();
+    let mut input_index = 0;
+    for clip in &sorted_clips {
+        if !input_map.contains_key(&clip.file_path) {
+            input_map.insert(clip.file_path.clone(), input_index);
+            input_index += 1;
+        }
+    }
+
     // Process each clip and create timeline segments
     let mut timeline_segments = Vec::new();
     let mut current_time = 0.0;
     let mut segment_count = 0;
 
     for (i, clip) in sorted_clips.iter().enumerate() {
+        let input_idx = input_map[&clip.file_path];
         let trim_start = clip.trim_in;
         let trim_duration = clip.trim_out - clip.trim_in;
+        
+        println!("Processing clip {}: trim_start={}, trim_out={}, trim_duration={}", 
+            i, trim_start, clip.trim_out, trim_duration);
         
         // Add black screen if there's a gap
         if clip.start_time > current_time {
@@ -213,14 +230,15 @@ pub async fn export_timeline(params: ExportParams) -> Result<String, String> {
         // Trim and scale video with proper aspect ratio handling
         let video_filter = format!(
             "[{}:v]trim=start={}:duration={},setpts=PTS-STARTPTS,scale={}:{}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:black,setsar=1[v{}_trimmed]",
-            i, trim_start, trim_duration, width, height, width, height, i
+            input_idx, trim_start, trim_duration, width, height, width, height, i
         );
+        println!("Video filter for clip {}: {}", i, video_filter);
         filter_parts.push(video_filter);
         
         // Trim audio if it exists
         let audio_filter = format!(
             "[{}:a]atrim=start={}:duration={},asetpts=PTS-STARTPTS[a{}_trimmed]",
-            i, trim_start, trim_duration, i
+            input_idx, trim_start, trim_duration, i
         );
         filter_parts.push(audio_filter);
         
