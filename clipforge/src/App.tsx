@@ -5,10 +5,11 @@ import { useTimelineStore } from "./state/timelineStore";
 import MediaPanel from "./components/MediaPanel";
 import { Timeline } from "./components/Timeline";
 import RecordingTab from "./components/RecordingTab";
+import AIToolsTab from "./components/AIToolsTab";
 import ExportModal from "./components/ExportModal";
 import HelpModal from "./components/HelpModal";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
-import { Menu, X, HelpCircle, Download, Play, Video } from "lucide-react";
+import { Menu, X, HelpCircle, Download, Play, Video, Sparkles } from "lucide-react";
 
 const App: React.FC = () => {
   console.log('App component rendering...');
@@ -17,7 +18,7 @@ const App: React.FC = () => {
   console.log('Current clips count:', clips.length);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'editor' | 'recording'>('editor');
+  const [activeTab, setActiveTab] = useState<'editor' | 'recording' | 'ai-tools'>('editor');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   // Enable keyboard shortcuts
@@ -77,6 +78,17 @@ const App: React.FC = () => {
               >
                 <Play className="w-4 h-4" />
                 <span>Recording Studio</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('ai-tools')}
+                className={`flex-1 flex items-center justify-center space-x-2 py-2 px-4 rounded-md font-medium transition-all duration-200 ${
+                  activeTab === 'ai-tools'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>AI Tools</span>
               </button>
             </div>
           </div>
@@ -148,8 +160,10 @@ const App: React.FC = () => {
               </div>
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'recording' ? (
           <RecordingTab />
+        ) : (
+          <AIToolsTab />
         )}
       </div>
       

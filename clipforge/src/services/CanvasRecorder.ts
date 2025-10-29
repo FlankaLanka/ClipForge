@@ -1,7 +1,6 @@
 export class CanvasRecorder {
   private mediaRecorder: MediaRecorder | null = null;
   private recordedChunks: Blob[] = [];
-  private canvas: HTMLCanvasElement;
   private recordingCanvas: HTMLCanvasElement | null = null;
   private stream: MediaStream | null = null;
   private audioContext: AudioContext | null = null;
@@ -10,8 +9,8 @@ export class CanvasRecorder {
   private isRecording = false;
   private recordingAnimationId: number | null = null;
 
-  constructor(canvas: HTMLCanvasElement) {
-    this.canvas = canvas;
+  constructor(_canvas: HTMLCanvasElement) {
+    // Canvas parameter kept for compatibility but not used in this implementation
   }
 
   async startRecording(audioStreams: MediaStream[] = [], sprites: any[] = []): Promise<void> {
@@ -89,6 +88,9 @@ export class CanvasRecorder {
       this.mediaRecorder.start(100); // Collect data every 100ms
       this.isRecording = true;
 
+      // Prevent MediaStream tracks from being paused when tab becomes hidden
+      this.preventStreamPause(finalStream);
+
       // Start continuous animation to update recording canvas
       this.startRecordingAnimation(sprites);
 
@@ -110,6 +112,23 @@ export class CanvasRecorder {
         const mimeType = this.mediaRecorder?.mimeType || 'video/webm';
         const blob = new Blob(this.recordedChunks, { type: mimeType });
         this.isRecording = false;
+        
+        // Clean up visibility handlers
+        if ((this as any).visibilityHandler) {
+          document.removeEventListener('visibilitychange', (this as any).visibilityHandler);
+          (this as any).visibilityHandler = null;
+        }
+        if ((this as any).streamVisibilityHandler) {
+          document.removeEventListener('visibilitychange', (this as any).streamVisibilityHandler);
+          (this as any).streamVisibilityHandler = null;
+        }
+        
+        // Clean up animation
+        if (this.recordingAnimationId) {
+          cancelAnimationFrame(this.recordingAnimationId);
+          this.recordingAnimationId = null;
+        }
+        
         console.log('Canvas recording stopped, blob size:', blob.size, 'mimeType:', mimeType);
         resolve({ blob, mimeType });
       };
@@ -126,6 +145,52 @@ export class CanvasRecorder {
     return this.isRecording ? 'recording' : 'stopped';
   }
 
+  private preventStreamPause(stream: MediaStream): void {
+    // Ensure all tracks stay active even when tab is hidden
+    stream.getTracks().forEach(track => {
+      // Set track to not be affected by page visibility
+      if (track.kind === 'video') {
+        // For video tracks, we need to keep them active
+        const videoTrack = track as MediaStreamTrack;
+        if (videoTrack.applyConstraints) {
+          videoTrack.applyConstraints({
+            // Keep the track active
+          }).catch(console.warn);
+        }
+      }
+      
+      // Ensure track is enabled and not muted
+      track.enabled = true;
+      
+      // Add event listeners to detect if track gets paused
+      track.addEventListener('ended', () => {
+        console.warn('Track ended unexpectedly:', track.kind);
+      });
+      
+      track.addEventListener('mute', () => {
+        console.warn('Track muted unexpectedly:', track.kind);
+        track.enabled = true; // Re-enable if muted
+      });
+    });
+
+    // Add visibility change listener to keep streams active
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log('Tab hidden, ensuring streams stay active...');
+        stream.getTracks().forEach(track => {
+          if (track.readyState === 'live') {
+            track.enabled = true;
+          }
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Store the handler for cleanup
+    (this as any).streamVisibilityHandler = handleVisibilityChange;
+  }
+
   private startRecordingAnimation(sprites: any[]): void {
     const animate = () => {
       if (this.isRecording && this.recordingCanvas) {
@@ -134,6 +199,30 @@ export class CanvasRecorder {
       }
     };
     animate();
+
+    // Add visibility change listener to ensure recording continues when tab is not visible
+    const handleVisibilityChange = () => {
+      if (document.hidden && this.isRecording) {
+        console.log('Tab became hidden, but recording continues...');
+        // Force continue animation even when tab is hidden
+        const forceAnimate = () => {
+          if (this.isRecording && this.recordingCanvas) {
+            this.copyCanvasToRecordingCanvas(sprites);
+            setTimeout(() => {
+              if (this.isRecording) {
+                forceAnimate();
+              }
+            }, 16); // ~60fps even when tab is hidden
+          }
+        };
+        forceAnimate();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Store the handler so we can remove it later
+    (this as any).visibilityHandler = handleVisibilityChange;
   }
 
   private copyCanvasToRecordingCanvas(sprites: any[]): void {

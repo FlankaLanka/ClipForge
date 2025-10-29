@@ -1,6 +1,10 @@
 pub mod ffmpeg;
 pub mod filesystem;
 pub mod recording;
+pub mod openai;
+pub mod text_to_video;
+pub mod style_generator;
+pub mod video_upscaler;
 
 use serde::{Deserialize, Serialize};
 

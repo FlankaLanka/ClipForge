@@ -56,6 +56,8 @@ const CanvasRecordingStudio: React.FC = () => {
   const [canvasRecorder, setCanvasRecorder] = useState<CanvasRecorder | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
   const [outputFolder, setOutputFolder] = useState<string>('');
+  const [isTabHidden, setIsTabHidden] = useState(false);
+  const [isStoppingRecording, setIsStoppingRecording] = useState(false);
   
   // Dialog states
   const [webcamDialogOpen, setWebcamDialogOpen] = useState(false);
@@ -300,15 +302,28 @@ const CanvasRecordingStudio: React.FC = () => {
     try {
       console.log('Adding screen sprite - triggering macOS screen sharing');
       
+      // Check if getDisplayMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        throw new Error('Screen sharing is not supported in this browser. Please use a modern browser like Chrome, Firefox, or Safari.');
+      }
+      
       // Directly trigger macOS screen sharing dialog
+      console.log('Calling getDisplayMedia...');
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: {
           width: { ideal: 1920 },
           height: { ideal: 1080 },
           frameRate: { ideal: 30 }
         },
-        audio: false // Disable audio capture for screen recording
+        audio: false, // Disable audio capture for screen recording
+        // Add these options to improve capture behavior
+        preferCurrentTab: false, // Don't prefer current tab
+        systemAudio: 'exclude', // Exclude system audio
+        surfaceSwitching: 'include' // Include surface switching (follows windows)
       });
+      
+      console.log('Screen capture stream obtained:', screenStream);
+      console.log('Video tracks:', screenStream.getVideoTracks());
       
       // Get the actual dimensions of the selected screen/window
       const videoTrack = screenStream.getVideoTracks()[0];
@@ -364,7 +379,24 @@ const CanvasRecordingStudio: React.FC = () => {
       setSprites(prev => [...prev, newSprite]);
     } catch (error) {
       console.error('Failed to add screen sprite:', error);
-      alert('Failed to add screen sprite. Please check permissions and try again.');
+      
+      let errorMessage = 'Failed to add screen sprite. ';
+      
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          errorMessage += 'Screen sharing permission was denied. Please allow screen sharing and try again.';
+        } else if (error.name === 'NotFoundError') {
+          errorMessage += 'No screen or window was selected. Please try again and select a screen or window to share.';
+        } else if (error.name === 'NotSupportedError') {
+          errorMessage += 'Screen sharing is not supported in this browser. Please use Chrome, Firefox, or Safari.';
+        } else {
+          errorMessage += error.message;
+        }
+      } else {
+        errorMessage += 'Please check permissions and try again.';
+      }
+      
+      alert(errorMessage);
     }
   };
 
@@ -618,58 +650,80 @@ const CanvasRecordingStudio: React.FC = () => {
     });
   };
 
-  // Handle sprite change source
-  const handleSpriteChangeSource = async (spriteId: string) => {
+  // Refresh screen capture for a specific sprite
+  const refreshScreenCapture = async (spriteId: string) => {
     const sprite = sprites.find(s => s.id === spriteId);
-    if (!sprite) return;
+    if (!sprite || sprite.type !== 'monitor') return;
 
-    if (sprite.type === 'webcam') {
-      // Show webcam selection dialog
-      const availableWebcams = webcamDevices.map(device => ({
-        id: device.deviceId,
-        name: device.label || `Camera ${device.deviceId.slice(0, 8)}`
-      }));
-
-      if (availableWebcams.length === 0) {
-        alert('No webcams available');
-        return;
+    try {
+      console.log('Refreshing screen capture for sprite:', spriteId);
+      
+      // Stop current stream
+      if (sprite.videoStream) {
+        sprite.videoStream.getTracks().forEach(track => track.stop());
       }
 
-      // For now, just cycle through available webcams
-      const currentIndex = availableWebcams.findIndex(w => w.id === sprite.id);
-      const nextIndex = (currentIndex + 1) % availableWebcams.length;
-      const selectedWebcam = availableWebcams[nextIndex];
+      // Clean up current video element
+      cleanupVideoElement(spriteId);
 
-      try {
-        // Stop current stream
-        if (sprite.videoStream) {
-          sprite.videoStream.getTracks().forEach(track => track.stop());
-        }
+      // Get new screen stream
+      const newScreenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: {
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 30 }
+        },
+        audio: false,
+        preferCurrentTab: false,
+        systemAudio: 'exclude',
+        surfaceSwitching: 'include'
+      });
 
-        // Clean up current video element
-        cleanupVideoElement(spriteId);
+      // Get the actual dimensions
+      const videoTrack = newScreenStream.getVideoTracks()[0];
+      const settings = videoTrack.getSettings();
+      const actualWidth = settings.width || 1920;
+      const actualHeight = settings.height || 1080;
 
-        // Get new webcam stream
-        const newStream = await startWebcamAndGetStream(selectedWebcam.id);
-        const newVideoElement = createVideoElement(spriteId, newStream);
-
-        // Update sprite with new stream
-        setSprites(prev => prev.map(s => 
-          s.id === spriteId 
-            ? { ...s, videoStream: newStream, videoElement: newVideoElement, name: selectedWebcam.name }
-            : s
-        ));
-
-        console.log(`Changed webcam source for sprite ${spriteId} to ${selectedWebcam.name}`);
-      } catch (error) {
-        console.error('Failed to change webcam source:', error);
-        alert('Failed to change webcam source');
+      // Calculate scaled dimensions
+      const maxWidth = 800;
+      const maxHeight = 600;
+      
+      let spriteWidth = actualWidth;
+      let spriteHeight = actualHeight;
+      
+      if (spriteWidth > maxWidth || spriteHeight > maxHeight) {
+        const scaleX = maxWidth / spriteWidth;
+        const scaleY = maxHeight / spriteHeight;
+        const scale = Math.min(scaleX, scaleY);
+        
+        spriteWidth = Math.round(spriteWidth * scale);
+        spriteHeight = Math.round(spriteHeight * scale);
       }
-    } else if (sprite.type === 'monitor') {
-      // For screen capture, we can't easily change the source
-      alert('Screen capture source cannot be changed. Please delete and add a new screen sprite.');
+
+      // Create new video element
+      const newVideoElement = createVideoElement(spriteId, newScreenStream);
+
+      // Update sprite with new stream and dimensions
+      setSprites(prev => prev.map(s => 
+        s.id === spriteId 
+          ? { 
+              ...s, 
+              videoStream: newScreenStream, 
+              videoElement: newVideoElement,
+              width: spriteWidth,
+              height: spriteHeight
+            }
+          : s
+      ));
+
+      console.log(`Refreshed screen capture for sprite ${spriteId}`);
+    } catch (error) {
+      console.error('Failed to refresh screen capture:', error);
+      alert('Failed to refresh screen capture. Please try again.');
     }
   };
+
 
   // Select output folder
   const selectOutputFolder = async () => {
@@ -742,7 +796,13 @@ const CanvasRecordingStudio: React.FC = () => {
 
   // Stop recording
   const stopRecording = async () => {
+    if (isStoppingRecording) {
+      return; // Prevent multiple clicks
+    }
+
     try {
+      setIsStoppingRecording(true);
+      
       if (!canvasRecorder) {
         alert('No active recording to stop');
         return;
@@ -794,6 +854,8 @@ const CanvasRecordingStudio: React.FC = () => {
     } catch (error) {
       console.error('Failed to stop recording:', error);
       alert(`Failed to stop recording: ${error}`);
+    } finally {
+      setIsStoppingRecording(false);
     }
   };
 
@@ -850,7 +912,87 @@ const CanvasRecordingStudio: React.FC = () => {
     loadWebcamDevices();
     loadAudioDevices();
     
+    // Handle tab visibility changes to keep streams active
+    const handleVisibilityChange = () => {
+      setIsTabHidden(document.hidden);
+      
+      if (document.hidden) {
+        console.log('Tab hidden, ensuring streams stay active...');
+        
+        // Show notification if recording is active
+        if (recordingState.isRecording) {
+          // Request notification permission and show notification
+          if (Notification.permission === 'granted') {
+            new Notification('ClipForge Recording', {
+              body: 'Recording continues in background. Click to return to app.',
+              icon: '/favicon.ico',
+              tag: 'clipforge-recording'
+            });
+          } else if (Notification.permission !== 'denied') {
+            Notification.requestPermission().then(permission => {
+              if (permission === 'granted') {
+                new Notification('ClipForge Recording', {
+                  body: 'Recording continues in background. Click to return to app.',
+                  icon: '/favicon.ico',
+                  tag: 'clipforge-recording'
+                });
+              }
+            });
+          }
+        }
+        
+        // Keep webcam stream active
+        if (webcamStream) {
+          webcamStream.getTracks().forEach(track => {
+            if (track.readyState === 'live') {
+              track.enabled = true;
+            }
+          });
+        }
+        
+        // Keep screen stream active
+        if (screenStream) {
+          screenStream.getTracks().forEach(track => {
+            if (track.readyState === 'live') {
+              track.enabled = true;
+            }
+          });
+        }
+        
+        // Keep sprite video elements active
+        Object.values(videoElementsRef.current).forEach(video => {
+          if (video && video.srcObject) {
+            const stream = video.srcObject as MediaStream;
+            stream.getTracks().forEach(track => {
+              if (track.readyState === 'live') {
+                track.enabled = true;
+              }
+            });
+          }
+        });
+      } else {
+        console.log('Tab visible again');
+        // Clear any existing notifications
+        if (Notification.permission === 'granted') {
+          // Close the recording notification when tab becomes visible
+          navigator.serviceWorker?.getRegistrations().then(notifications => {
+            if (notifications) {
+              notifications.forEach(registration => {
+                registration.getNotifications({ tag: 'clipforge-recording' }).then(notifications => {
+                  notifications.forEach(notification => notification.close());
+                });
+              });
+            }
+          });
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      
       if (webcamStream) {
         webcamStream.getTracks().forEach(track => track.stop());
       }
@@ -866,7 +1008,7 @@ const CanvasRecordingStudio: React.FC = () => {
         cleanupVideoElement(spriteId);
       });
     };
-  }, []);
+  }, [webcamStream, screenStream]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -914,6 +1056,12 @@ const CanvasRecordingStudio: React.FC = () => {
                             <span className="text-sm font-semibold text-red-900">
                               Recording: {formatTime(recordingTime)}
                             </span>
+                            {isTabHidden && (
+                              <div className="flex items-center space-x-1 text-xs text-red-700 bg-red-200 px-2 py-1 rounded">
+                                <span>📱</span>
+                                <span>Background</span>
+                              </div>
+                            )}
                           </div>
                         )}
                 
@@ -930,10 +1078,15 @@ const CanvasRecordingStudio: React.FC = () => {
                   ) : (
                     <button
                       onClick={stopRecording}
-                      className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-xl font-bold text-lg shadow-xl hover:scale-105 transition-all duration-300 flex items-center space-x-2"
+                      disabled={isStoppingRecording}
+                      className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-xl font-bold text-lg shadow-xl hover:scale-105 transition-all duration-300 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                     >
-                      <div className="w-4 h-4 bg-white rounded"></div>
-                      <span>Stop Recording</span>
+                      {isStoppingRecording ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <div className="w-4 h-4 bg-white rounded"></div>
+                      )}
+                      <span>{isStoppingRecording ? 'Stopping...' : 'Stop Recording'}</span>
                     </button>
                   )}
                 </div>
@@ -1062,12 +1215,23 @@ const CanvasRecordingStudio: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                      <button
-                        onClick={() => removeSprite(sprite.id)}
-                        className="text-red-500 hover:text-red-700 text-lg hover:scale-110 transition-all duration-300"
-                      >
-                        ×
-                      </button>
+                      <div className="flex items-center space-x-1">
+                        {sprite.type === 'monitor' && (
+                          <button
+                            onClick={() => refreshScreenCapture(sprite.id)}
+                            className="text-blue-500 hover:text-blue-700 text-sm hover:scale-110 transition-all duration-300"
+                            title="Refresh screen capture"
+                          >
+                            🔄
+                          </button>
+                        )}
+                        <button
+                          onClick={() => removeSprite(sprite.id)}
+                          className="text-red-500 hover:text-red-700 text-lg hover:scale-110 transition-all duration-300"
+                        >
+                          ×
+                        </button>
+                      </div>
                     </div>
                   ))}
                           {sprites.length === 0 && (
@@ -1089,6 +1253,7 @@ const CanvasRecordingStudio: React.FC = () => {
                         <li>• Click to select • Drag to move</li>
                         <li>• Drag handles to resize</li>
                         <li>• Center origin (0,0)</li>
+                        <li>• 🔄 Refresh screen capture if window moves</li>
                       </ul>
                     </div>
           </div>
@@ -1115,7 +1280,6 @@ const CanvasRecordingStudio: React.FC = () => {
                   onSpriteRemove={removeSprite}
                   onSpriteMoveToFront={handleSpriteMoveToFront}
                   onSpriteMoveToBack={handleSpriteMoveToBack}
-                  onSpriteChangeSource={handleSpriteChangeSource}
                 />
               </div>
 

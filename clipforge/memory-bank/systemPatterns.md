@@ -86,6 +86,13 @@ ClipForge follows a clear separation between Rust backend (system operations) an
 - **Audio Mixing**: Real-time mixing of multiple audio sources
 - **File Output**: User-controlled output with high-quality encoding
 
+### AI Tools Pattern
+- **OpenAI Integration**: DALL-E 3 API for image generation and style transfer
+- **Hybrid Processing**: FFmpeg filters for fast preview, AI for high-quality results
+- **Text-to-Video**: Generate scenes from prompts, combine with transitions
+- **Style Generator**: Apply artistic styles using frame-by-frame AI processing
+- **API Key Management**: Environment variable-based authentication
+
 ## Component Relationships
 ```
 App
@@ -95,6 +102,9 @@ App
 │   ├── VoiceMeter (audio level visualization)
 │   ├── AudioIndicator (visual audio feedback)
 │   └── Source Dialogs (webcam/voice selection)
+├── AIToolsTab (AI-powered tools)
+│   ├── TextToVideo (text-to-video generation)
+│   └── AIStyleGenerator (video style transfer)
 ├── MediaPanel (import, library)
 ├── VideoPlayer (preview, controls)
 ├── TimelineCanvas (editing, arrangement)

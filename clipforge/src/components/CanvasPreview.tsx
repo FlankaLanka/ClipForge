@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import AudioIndicator from './AudioIndicator';
 
 interface Sprite {
@@ -24,7 +25,6 @@ interface CanvasPreviewProps {
   onSpriteRemove: (id: string) => void;
   onSpriteMoveToFront: (id: string) => void;
   onSpriteMoveToBack: (id: string) => void;
-  onSpriteChangeSource: (id: string) => void;
 }
 
 const CanvasPreview: React.FC<CanvasPreviewProps> = ({
@@ -35,8 +35,7 @@ const CanvasPreview: React.FC<CanvasPreviewProps> = ({
   onSpriteSelect,
   onSpriteRemove,
   onSpriteMoveToFront,
-  onSpriteMoveToBack,
-  onSpriteChangeSource
+  onSpriteMoveToBack
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -49,6 +48,7 @@ const CanvasPreview: React.FC<CanvasPreviewProps> = ({
   const [rotationStart, setRotationStart] = useState(0);
   const [cursor, setCursor] = useState<string>('crosshair');
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; spriteId: string } | null>(null);
+  const [debugDot, setDebugDot] = useState<{ x: number; y: number } | null>(null);
 
   // Convert screen coordinates to center-relative coordinates
   const screenToCenter = useCallback((screenX: number, screenY: number) => {
@@ -313,18 +313,30 @@ const CanvasPreview: React.FC<CanvasPreviewProps> = ({
          // Handle right click
          if (e.button === 2) {
            e.preventDefault(); // Prevent context menu
+           console.log('Right click detected on canvas');
            
            if (clickedSprite) {
+             console.log('Right click on sprite:', clickedSprite.id);
              setSelectedSprite(clickedSprite.id);
              onSpriteSelect(clickedSprite.id);
              
-             // Show context menu for sprite
+             // Show context menu for sprite at mouse position
              setContextMenu({
                x: e.clientX,
                y: e.clientY,
                spriteId: clickedSprite.id
              });
+             
+             // Debug: Show a dot at the exact mouse position
+             setDebugDot({ x: e.clientX, y: e.clientY });
+             setTimeout(() => setDebugDot(null), 2000); // Remove debug dot after 2 seconds
+             
+             console.log('Context menu shown for sprite:', clickedSprite.id);
+             console.log('Mouse position - clientX:', e.clientX, 'clientY:', e.clientY);
+             console.log('Context menu position - x:', e.clientX, 'y:', e.clientY);
+             console.log('Context menu will be rendered at:', e.clientX, e.clientY);
            } else {
+             console.log('Right click on empty space, closing context menu');
              // Close context menu if clicking on empty space
              setContextMenu(null);
              setSelectedSprite(null);
@@ -512,6 +524,20 @@ const CanvasPreview: React.FC<CanvasPreviewProps> = ({
     return () => window.removeEventListener('resize', resizeCanvas);
   }, [render]);
 
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (contextMenu) {
+        setContextMenu(null);
+      }
+    };
+
+    if (contextMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [contextMenu]);
+
   return (
     <div ref={containerRef} className="relative w-full h-full bg-black rounded-lg overflow-hidden flex items-center justify-center">
       <canvas
@@ -524,17 +550,20 @@ const CanvasPreview: React.FC<CanvasPreviewProps> = ({
       
       
            {/* Context Menu */}
-           {contextMenu && (
+           {contextMenu && createPortal(
              <div
-               className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 min-w-48"
+               className="bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 min-w-48"
                style={{
-                 left: contextMenu.x,
-                 top: contextMenu.y,
+                 position: 'fixed',
+                 left: `${contextMenu.x}px`,
+                 top: `${contextMenu.y}px`,
+                 zIndex: 9999,
                }}
              >
                <button
                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center space-x-2"
                  onClick={() => {
+                   console.log('Move to front clicked for sprite:', contextMenu.spriteId);
                    onSpriteMoveToFront(contextMenu.spriteId);
                    setContextMenu(null);
                  }}
@@ -545,6 +574,7 @@ const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                <button
                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center space-x-2"
                  onClick={() => {
+                   console.log('Move to back clicked for sprite:', contextMenu.spriteId);
                    onSpriteMoveToBack(contextMenu.spriteId);
                    setContextMenu(null);
                  }}
@@ -554,19 +584,9 @@ const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                </button>
                <div className="border-t border-gray-200 my-1"></div>
                <button
-                 className="w-full px-4 py-2 text-left text-sm hover:bg-blue-100 text-blue-600 flex items-center space-x-2"
-                 onClick={() => {
-                   onSpriteChangeSource(contextMenu.spriteId);
-                   setContextMenu(null);
-                 }}
-               >
-                 <span>🔄</span>
-                 <span>Change Source</span>
-               </button>
-               <div className="border-t border-gray-200 my-1"></div>
-               <button
                  className="w-full px-4 py-2 text-left text-sm hover:bg-red-100 text-red-600 flex items-center space-x-2"
                  onClick={() => {
+                   console.log('Delete clicked for sprite:', contextMenu.spriteId);
                    onSpriteRemove(contextMenu.spriteId);
                    setContextMenu(null);
                  }}
@@ -574,8 +594,21 @@ const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                  <span>🗑️</span>
                  <span>Delete</span>
                </button>
-             </div>
+             </div>,
+             document.body
            )}
+      
+          {/* Debug dot to show exact mouse position */}
+          {debugDot && (
+            <div
+              className="fixed w-4 h-4 bg-red-500 rounded-full z-50 pointer-events-none"
+              style={{
+                left: `${debugDot.x - 8}px`,
+                top: `${debugDot.y - 8}px`,
+              }}
+            />
+          )}
+          
       
           {/* Instructions overlay */}
           {sprites.length === 0 && (
