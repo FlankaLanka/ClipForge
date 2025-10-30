@@ -1,10 +1,11 @@
-use tauri::command;
+use tauri::{command, AppHandle};
 use std::path::Path;
 use std::fs;
 use tokio::process::Command;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use image::{ImageBuffer, Rgb, RgbImage, DynamicImage};
+use crate::commands::binary_utils::get_ffmpeg_path;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -64,6 +65,7 @@ pub async fn create_directory(path: &str) -> Result<String, String> {
 /// Extract frames from video at specified FPS
 #[command]
 pub async fn extract_video_frames(
+    app: AppHandle,
     input_path: &str,
     output_dir: &str,
     fps: u32,
@@ -76,7 +78,8 @@ pub async fn extract_video_frames(
     fs::create_dir_all(output_dir)
         .map_err(|e| format!("Failed to create output directory: {}", e))?;
 
-    let mut ffmpeg_cmd = Command::new("ffmpeg");
+    let ffmpeg_path = get_ffmpeg_path(&app)?;
+    let mut ffmpeg_cmd = Command::new(ffmpeg_path);
     ffmpeg_cmd
         .arg("-i")
         .arg(input_path)
@@ -499,6 +502,7 @@ fn extract_psnr_value(line: &str) -> Option<f64> {
 /// Build character sprite sheet from detected sprites
 #[command]
 pub async fn build_character_sprite_sheet(
+    app: AppHandle,
     sprites: Vec<CharacterSprite>,
     output_dir: &str,
     padding: i32,
@@ -527,7 +531,8 @@ pub async fn build_character_sprite_sheet(
 
     // Use a simpler approach: create individual sprite sheets and combine them
     // First, let's try a basic hstack approach for all sprites in one row
-    let mut ffmpeg_cmd = Command::new("ffmpeg");
+    let ffmpeg_path = get_ffmpeg_path(&app)?;
+    let mut ffmpeg_cmd = Command::new(ffmpeg_path);
     
     // Add all sprite inputs
     for sprite in sprites.iter() {

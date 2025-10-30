@@ -1,8 +1,9 @@
-use tauri::command;
+use tauri::{command, AppHandle};
 use serde::{Deserialize, Serialize};
 use std::process::Command;
 use anyhow::Result;
 use crate::commands::{VideoMetadata, VideoClip};
+use crate::commands::binary_utils::{get_ffmpeg_path, get_ffprobe_path};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TrimParams {
@@ -20,8 +21,9 @@ pub struct ExportParams {
 }
 
 #[command]
-pub async fn get_video_metadata(file_path: String) -> Result<VideoMetadata, String> {
-    let output = Command::new("ffprobe")
+pub async fn get_video_metadata(app: AppHandle, file_path: String) -> Result<VideoMetadata, String> {
+    let ffprobe_path = get_ffprobe_path(&app)?;
+    let output = Command::new(ffprobe_path)
         .args([
             "-v", "quiet",
             "-print_format", "json",
@@ -91,8 +93,9 @@ pub async fn get_video_metadata(file_path: String) -> Result<VideoMetadata, Stri
 }
 
 #[command]
-pub async fn trim_video(params: TrimParams) -> Result<String, String> {
-    let output = Command::new("ffmpeg")
+pub async fn trim_video(app: AppHandle, params: TrimParams) -> Result<String, String> {
+    let ffmpeg_path = get_ffmpeg_path(&app)?;
+    let output = Command::new(ffmpeg_path)
         .args([
             "-i", &params.input_path,
             "-ss", &params.start_time.to_string(),
@@ -112,10 +115,11 @@ pub async fn trim_video(params: TrimParams) -> Result<String, String> {
 }
 
 #[command]
-pub async fn convert_mov_to_mp4(input_path: String) -> Result<String, String> {
+pub async fn convert_mov_to_mp4(app: AppHandle, input_path: String) -> Result<String, String> {
     let output_path = input_path.replace(".mov", "_converted.mp4");
     
-    let output = Command::new("ffmpeg")
+    let ffmpeg_path = get_ffmpeg_path(&app)?;
+    let output = Command::new(ffmpeg_path)
         .args([
             "-i", &input_path,
             "-c:v", "libx264",
@@ -135,10 +139,12 @@ pub async fn convert_mov_to_mp4(input_path: String) -> Result<String, String> {
 }
 
 #[command]
-pub async fn export_timeline(params: ExportParams) -> Result<String, String> {
+pub async fn export_timeline(app: AppHandle, params: ExportParams) -> Result<String, String> {
     if params.clips.is_empty() {
         return Err("No clips to export".to_string());
     }
+    
+    let ffmpeg_path = get_ffmpeg_path(&app)?;
 
     // Sort clips by timeline position
     let mut sorted_clips = params.clips.clone();
@@ -283,7 +289,7 @@ pub async fn export_timeline(params: ExportParams) -> Result<String, String> {
 
     println!("FFmpeg command: ffmpeg {}", args.join(" "));
 
-    let output = Command::new("ffmpeg")
+    let output = Command::new(&ffmpeg_path)
         .args(&args)
         .output()
         .map_err(|e| format!("Failed to execute ffmpeg: {}", e))?;

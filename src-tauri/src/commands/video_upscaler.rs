@@ -1,10 +1,12 @@
-use tauri::command;
+use tauri::{command, AppHandle};
 use std::path::Path;
 use tokio::process::Command;
+use crate::commands::binary_utils::{get_ffmpeg_path, get_ffprobe_path};
 
 /// Upscale video using AI models
 #[command]
 pub async fn upscale_video(
+    app: AppHandle,
     input_path: String,
     output_path: String,
     upscale_factor: u32,
@@ -22,7 +24,7 @@ pub async fn upscale_video(
     }
 
     // Get video metadata
-    let metadata = get_video_metadata(&input_path).await?;
+    let metadata = get_video_metadata(&app, &input_path).await?;
     let original_width = metadata.width;
     let original_height = metadata.height;
     let target_width = original_width * upscale_factor;
@@ -40,17 +42,18 @@ pub async fn upscale_video(
              original_width, original_height, target_width, target_height, model);
 
     match model.as_str() {
-        "realesrgan" => upscale_with_realesrgan(input_path, output_path, upscale_factor, quality).await,
-        "esrgan" => upscale_with_esrgan(input_path, output_path, upscale_factor, quality).await,
-        "waifu2x" => upscale_with_waifu2x(input_path, output_path, upscale_factor, quality).await,
-        "lanczos" => upscale_with_lanczos(input_path, output_path, upscale_factor).await,
+        "realesrgan" => upscale_with_realesrgan(&app, input_path, output_path, upscale_factor, quality).await,
+        "esrgan" => upscale_with_esrgan(&app, input_path, output_path, upscale_factor, quality).await,
+        "waifu2x" => upscale_with_waifu2x(&app, input_path, output_path, upscale_factor, quality).await,
+        "lanczos" => upscale_with_lanczos(&app, input_path, output_path, upscale_factor).await,
         _ => Err(format!("Unsupported model: {}", model))
     }
 }
 
 /// Get video metadata using ffprobe
-async fn get_video_metadata(input_path: &str) -> Result<VideoMetadata, String> {
-    let output = Command::new("ffprobe")
+async fn get_video_metadata(app: &AppHandle, input_path: &str) -> Result<VideoMetadata, String> {
+    let ffprobe_path = get_ffprobe_path(app)?;
+    let output = Command::new(ffprobe_path)
         .arg("-v")
         .arg("quiet")
         .arg("-print_format")
@@ -112,6 +115,7 @@ async fn get_video_metadata(input_path: &str) -> Result<VideoMetadata, String> {
 
 /// Upscale using Real-ESRGAN (best for photos and graphics)
 async fn upscale_with_realesrgan(
+    app: &AppHandle,
     input_path: String,
     output_path: String,
     upscale_factor: u32,
@@ -119,36 +123,40 @@ async fn upscale_with_realesrgan(
 ) -> Result<String, String> {
     // For now, we'll use FFmpeg with enhanced filters as a fallback
     // In a real implementation, you'd integrate with Real-ESRGAN Python scripts
-    upscale_with_ffmpeg_enhanced(input_path, output_path, upscale_factor, quality, "realesrgan").await
+    upscale_with_ffmpeg_enhanced(app, input_path, output_path, upscale_factor, quality, "realesrgan").await
 }
 
 /// Upscale using ESRGAN
 async fn upscale_with_esrgan(
+    app: &AppHandle,
     input_path: String,
     output_path: String,
     upscale_factor: u32,
     quality: String,
 ) -> Result<String, String> {
-    upscale_with_ffmpeg_enhanced(input_path, output_path, upscale_factor, quality, "esrgan").await
+    upscale_with_ffmpeg_enhanced(app, input_path, output_path, upscale_factor, quality, "esrgan").await
 }
 
 /// Upscale using Waifu2x (optimized for anime/illustrations)
 async fn upscale_with_waifu2x(
+    app: &AppHandle,
     input_path: String,
     output_path: String,
     upscale_factor: u32,
     quality: String,
 ) -> Result<String, String> {
-    upscale_with_ffmpeg_enhanced(input_path, output_path, upscale_factor, quality, "waifu2x").await
+    upscale_with_ffmpeg_enhanced(app, input_path, output_path, upscale_factor, quality, "waifu2x").await
 }
 
 /// Upscale using Lanczos (traditional, fast)
 async fn upscale_with_lanczos(
+    app: &AppHandle,
     input_path: String,
     output_path: String,
     upscale_factor: u32,
 ) -> Result<String, String> {
-    let mut ffmpeg_cmd = Command::new("ffmpeg");
+    let ffmpeg_path = get_ffmpeg_path(app)?;
+    let mut ffmpeg_cmd = Command::new(ffmpeg_path);
     ffmpeg_cmd
         .arg("-i")
         .arg(&input_path)
@@ -184,13 +192,15 @@ async fn upscale_with_lanczos(
 
 /// Enhanced FFmpeg upscaling with AI-like filters
 async fn upscale_with_ffmpeg_enhanced(
+    app: &AppHandle,
     input_path: String,
     output_path: String,
     upscale_factor: u32,
     quality: String,
     model: &str,
 ) -> Result<String, String> {
-    let mut ffmpeg_cmd = Command::new("ffmpeg");
+    let ffmpeg_path = get_ffmpeg_path(app)?;
+    let mut ffmpeg_cmd = Command::new(ffmpeg_path);
     
     // Base scaling
     let scale_filter = format!("scale={}:{}:flags=lanczos", 

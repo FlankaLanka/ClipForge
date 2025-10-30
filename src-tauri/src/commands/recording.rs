@@ -1,9 +1,10 @@
-use tauri::command;
+use tauri::{command, AppHandle};
 use serde::{Deserialize, Serialize};
 use std::process::Command;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use uuid::Uuid;
+use crate::commands::binary_utils::get_ffmpeg_path;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MonitorInfo {
@@ -145,7 +146,7 @@ pub async fn get_capture_sources() -> Result<Vec<CaptureSource>, String> {
 }
 
 #[command]
-pub async fn start_screen_recording(_window_ids: Vec<String>) -> Result<String, String> {
+pub async fn start_screen_recording(app: AppHandle, _window_ids: Vec<String>) -> Result<String, String> {
     let session_id = Uuid::new_v4().to_string();
     // Get the user's home directory and create Desktop path
     let home_dir = std::env::var("HOME").map_err(|_| "Failed to get home directory")?;
@@ -178,7 +179,8 @@ pub async fn start_screen_recording(_window_ids: Vec<String>) -> Result<String, 
         desktop_path.clone(),
     ];
 
-    let child = Command::new("ffmpeg")
+    let ffmpeg_path = get_ffmpeg_path(&app)?;
+    let child = Command::new(ffmpeg_path)
         .args(&args)
         .spawn()
         .map_err(|e| format!("Failed to start screen recording: {}", e))?;
@@ -202,7 +204,7 @@ pub async fn start_screen_recording(_window_ids: Vec<String>) -> Result<String, 
 }
 
 #[command]
-pub async fn start_webcam_recording(_device_id: String) -> Result<String, String> {
+pub async fn start_webcam_recording(app: AppHandle, _device_id: String) -> Result<String, String> {
     let session_id = Uuid::new_v4().to_string();
     // Get the user's home directory and create Desktop path
     let home_dir = std::env::var("HOME").map_err(|_| "Failed to get home directory")?;
@@ -235,7 +237,8 @@ pub async fn start_webcam_recording(_device_id: String) -> Result<String, String
         desktop_path.clone(),
     ];
 
-    let child = Command::new("ffmpeg")
+    let ffmpeg_path = get_ffmpeg_path(&app)?;
+    let child = Command::new(ffmpeg_path)
         .args(&args)
         .spawn()
         .map_err(|e| format!("Failed to start webcam recording: {}", e))?;

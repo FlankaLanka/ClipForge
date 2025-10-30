@@ -1,8 +1,9 @@
-use tauri::command;
+use tauri::{command, AppHandle};
 use std::path::Path;
 use serde::{Deserialize, Serialize};
 use tokio::process::Command as TokioCommand;
 use std::fs;
+use crate::commands::binary_utils::get_ffmpeg_path;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FilterResult {
@@ -28,6 +29,7 @@ const FILTERS: &[(&str, &str)] = &[
 
 #[command]
 pub async fn apply_filters(
+    app: AppHandle,
     input_path: &str,
     filters: Vec<String>,
     _file_type: &str,
@@ -75,7 +77,8 @@ pub async fn apply_filters(
     println!("FFmpeg filter chain: {}", filter_chain);
 
     // Build FFmpeg command
-    let mut ffmpeg_cmd = TokioCommand::new("ffmpeg");
+    let ffmpeg_path = get_ffmpeg_path(&app)?;
+    let mut ffmpeg_cmd = TokioCommand::new(ffmpeg_path);
     ffmpeg_cmd
         .arg("-i")
         .arg(input_path)
@@ -107,11 +110,13 @@ pub async fn apply_filters(
 
 #[command]
 pub async fn upscale_media(
+    app: AppHandle,
     input_path: &str,
     scale_factor: i32,
     file_type: &str,
     method: &str,
 ) -> Result<FilterResult, String> {
+    let ffmpeg_path = get_ffmpeg_path(&app)?;
     println!("Upscaling {} by {}x using {} method", input_path, scale_factor, method);
 
     // Create output path in temp directory to avoid cluttering user's folders
@@ -140,7 +145,7 @@ pub async fn upscale_media(
     let output_path = temp_dir.join(&output_filename);
 
     // Build FFmpeg command for upscaling based on method
-    let mut ffmpeg_cmd = TokioCommand::new("ffmpeg");
+    let mut ffmpeg_cmd = TokioCommand::new(&ffmpeg_path);
     
     // Check if we need to use AI methods
     let use_ai = method == "dalle";
@@ -148,7 +153,7 @@ pub async fn upscale_media(
     if use_ai {
         // Use OpenAI DALL-E for real AI processing
         if file_type == "video" {
-            return upscale_video_with_openai(input_path, scale_factor, "dalle", &output_path).await;
+            return upscale_video_with_openai(&app, input_path, scale_factor, "dalle", &output_path).await;
         } else {
             return upscale_with_openai(input_path, scale_factor, file_type, "dalle", &output_path).await;
         }
@@ -443,6 +448,7 @@ async fn upscale_with_openai(
 
 // OpenAI-based video upscaling function (frame-by-frame)
 async fn upscale_video_with_openai(
+    app: &AppHandle,
     input_path: &str,
     scale_factor: i32,
     method: &str,
@@ -450,6 +456,8 @@ async fn upscale_video_with_openai(
 ) -> Result<FilterResult, String> {
     use std::fs;
     use base64::{Engine as _, engine::general_purpose};
+    
+    let ffmpeg_path = get_ffmpeg_path(app)?;
     
     // Get OpenAI API key
     let api_key = std::env::var("OPENAI_API_KEY")
@@ -469,7 +477,7 @@ async fn upscale_video_with_openai(
     
     // Extract frames using FFmpeg
     let frame_pattern = format!("{}/frame_%04d.png", frames_dir.to_string_lossy());
-    let extract_output = TokioCommand::new("ffmpeg")
+    let extract_output = TokioCommand::new(&ffmpeg_path)
         .arg("-i")
         .arg(input_path)
         .arg("-vf")
@@ -592,7 +600,7 @@ async fn upscale_video_with_openai(
     
     // Reassemble video from upscaled frames
     let upscaled_pattern = format!("{}/upscaled_frame_%04d.png", upscaled_frames_dir.to_string_lossy());
-    let reassemble_output = TokioCommand::new("ffmpeg")
+    let reassemble_output = TokioCommand::new(&ffmpeg_path)
         .arg("-framerate")
         .arg("30") // Match the extraction framerate
         .arg("-i")
@@ -631,6 +639,7 @@ async fn upscale_video_with_openai(
 
 #[command]
 pub async fn process_media(
+    app: AppHandle,
     input_path: &str,
     operation_type: &str,
     scale_factor: i32,
@@ -638,18 +647,20 @@ pub async fn process_media(
     method: &str,
 ) -> Result<FilterResult, String> {
     match operation_type {
-        "upscale" => upscale_media(input_path, scale_factor, file_type, method).await,
-        "unblur" => unblur_media(input_path, file_type, method).await,
+        "upscale" => upscale_media(app, input_path, scale_factor, file_type, method).await,
+        "unblur" => unblur_media(app, input_path, file_type, method).await,
         _ => Err(format!("Unknown operation type: {}", operation_type))
     }
 }
 
 // Unblur media function
 async fn unblur_media(
+    app: AppHandle,
     input_path: &str,
     file_type: &str,
     method: &str,
 ) -> Result<FilterResult, String> {
+    let ffmpeg_path = get_ffmpeg_path(&app)?;
     println!("Unblurring {} using {} method", input_path, method);
 
     // Create output path in temp directory
@@ -680,14 +691,14 @@ async fn unblur_media(
     if use_ai {
         // Use OpenAI DALL-E for real AI unblurring
         if file_type == "video" {
-            return unblur_video_with_openai(input_path, &output_path).await;
+            return unblur_video_with_openai(&app, input_path, &output_path).await;
         } else {
             return unblur_with_openai(input_path, &output_path).await;
         }
     }
 
     // Traditional unblur methods using FFmpeg
-    let mut ffmpeg_cmd = TokioCommand::new("ffmpeg");
+    let mut ffmpeg_cmd = TokioCommand::new(&ffmpeg_path);
     
     let filter = match method {
         "sharpen" => "unsharp=5:5:1.0:5:5:0.0",
@@ -810,11 +821,13 @@ async fn unblur_with_openai(
 
 // OpenAI DALL-E unblurring for videos (frame-by-frame)
 async fn unblur_video_with_openai(
+    app: &AppHandle,
     input_path: &str,
     output_path: &std::path::Path,
 ) -> Result<FilterResult, String> {
     use std::fs;
     
+    let ffmpeg_path = get_ffmpeg_path(app)?;
     println!("Using OpenAI DALL-E for video unblurring");
     
     // Create temporary directories for frames
@@ -831,7 +844,7 @@ async fn unblur_video_with_openai(
     
     // Extract frames using FFmpeg
     let frame_pattern = format!("{}/frame_%04d.png", frames_dir.to_string_lossy());
-    let extract_output = TokioCommand::new("ffmpeg")
+    let extract_output = TokioCommand::new(&ffmpeg_path)
         .arg("-i")
         .arg(input_path)
         .arg("-vf")
@@ -888,7 +901,7 @@ async fn unblur_video_with_openai(
     
     // Reassemble video from unblurred frames
     let unblurred_pattern = format!("{}/unblurred_frame_%04d.png", unblurred_frames_dir.to_string_lossy());
-    let reassemble_output = TokioCommand::new("ffmpeg")
+    let reassemble_output = TokioCommand::new(&ffmpeg_path)
         .arg("-framerate")
         .arg("10")
         .arg("-i")
@@ -927,12 +940,14 @@ async fn unblur_video_with_openai(
 
 // Local AI-based unblurring function for videos (frame-by-frame)
 async fn unblur_video_with_ai(
+    app: &AppHandle,
     input_path: &str,
     method: &str,
     output_path: &std::path::Path,
 ) -> Result<FilterResult, String> {
     use std::fs;
     
+    let ffmpeg_path = get_ffmpeg_path(app)?;
     println!("Using local AI for {} video unblurring", method);
     
     // Create temporary directories for frames
@@ -949,7 +964,7 @@ async fn unblur_video_with_ai(
     
     // Extract frames using FFmpeg
     let frame_pattern = format!("{}/frame_%04d.png", frames_dir.to_string_lossy());
-    let extract_output = TokioCommand::new("ffmpeg")
+    let extract_output = TokioCommand::new(&ffmpeg_path)
         .arg("-i")
         .arg(input_path)
         .arg("-vf")
@@ -991,7 +1006,7 @@ async fn unblur_video_with_ai(
         
         let unblurred_frame_path = unblurred_frames_dir.join(format!("unblurred_frame_{:04}.png", i + 1));
         
-        let mut ffmpeg_cmd = TokioCommand::new("ffmpeg");
+        let mut ffmpeg_cmd = TokioCommand::new(&ffmpeg_path);
         let frame_output = ffmpeg_cmd
             .arg("-i")
             .arg(frame_path)
@@ -1015,7 +1030,7 @@ async fn unblur_video_with_ai(
     
     // Reassemble video from unblurred frames
     let unblurred_pattern = format!("{}/unblurred_frame_%04d.png", unblurred_frames_dir.to_string_lossy());
-    let reassemble_output = TokioCommand::new("ffmpeg")
+    let reassemble_output = TokioCommand::new(&ffmpeg_path)
         .arg("-framerate")
         .arg("30")
         .arg("-i")
@@ -1054,6 +1069,7 @@ async fn unblur_video_with_ai(
 
 // Local AI-based upscaling function for videos (frame-by-frame)
 async fn upscale_video_with_ai(
+    app: &AppHandle,
     input_path: &str,
     scale_factor: i32,
     method: &str,
@@ -1061,6 +1077,7 @@ async fn upscale_video_with_ai(
 ) -> Result<FilterResult, String> {
     use std::fs;
     
+    let ffmpeg_path = get_ffmpeg_path(app)?;
     println!("Using local AI for {} video upscaling by {}x", method, scale_factor);
     
     // Create temporary directories for frames
@@ -1077,7 +1094,7 @@ async fn upscale_video_with_ai(
     
     // Extract frames using FFmpeg
     let frame_pattern = format!("{}/frame_%04d.png", frames_dir.to_string_lossy());
-    let extract_output = TokioCommand::new("ffmpeg")
+    let extract_output = TokioCommand::new(&ffmpeg_path)
         .arg("-i")
         .arg(input_path)
         .arg("-vf")
@@ -1124,7 +1141,7 @@ async fn upscale_video_with_ai(
             scale_factor, scale_factor
         );
         
-        let mut ffmpeg_cmd = TokioCommand::new("ffmpeg");
+        let mut ffmpeg_cmd = TokioCommand::new(&ffmpeg_path);
         let frame_output = ffmpeg_cmd
             .arg("-i")
             .arg(&*frame_path.to_string_lossy())
@@ -1154,7 +1171,7 @@ async fn upscale_video_with_ai(
     
     // Reassemble video from upscaled frames
     let upscaled_pattern = format!("{}/upscaled_frame_%04d.png", upscaled_frames_dir.to_string_lossy());
-    let reassemble_output = TokioCommand::new("ffmpeg")
+    let reassemble_output = TokioCommand::new(&ffmpeg_path)
         .arg("-framerate")
         .arg("30")
         .arg("-i")
@@ -1193,10 +1210,12 @@ async fn upscale_video_with_ai(
 
 // Enhanced traditional upscaling function for images
 async fn upscale_with_enhanced(
+    app: &AppHandle,
     input_path: &str,
     scale_factor: i32,
     output_path: &std::path::Path,
 ) -> Result<FilterResult, String> {
+    let ffmpeg_path = get_ffmpeg_path(app)?;
     println!("Using enhanced traditional processing for {}x upscaling", scale_factor);
     
     // Multi-pass enhanced processing
@@ -1205,7 +1224,7 @@ async fn upscale_with_enhanced(
         scale_factor, scale_factor
     );
     
-    let mut ffmpeg_cmd = TokioCommand::new("ffmpeg");
+    let mut ffmpeg_cmd = TokioCommand::new(&ffmpeg_path);
     let output = ffmpeg_cmd
         .arg("-i")
         .arg(input_path)
@@ -1234,12 +1253,14 @@ async fn upscale_with_enhanced(
 
 // Enhanced traditional upscaling function for videos
 async fn upscale_video_with_enhanced(
+    app: &AppHandle,
     input_path: &str,
     scale_factor: i32,
     output_path: &std::path::Path,
 ) -> Result<FilterResult, String> {
     use std::fs;
     
+    let ffmpeg_path = get_ffmpeg_path(app)?;
     println!("Using enhanced traditional processing for {}x video upscaling", scale_factor);
     
     // Create temporary directories for frames
@@ -1256,7 +1277,7 @@ async fn upscale_video_with_enhanced(
     
     // Extract frames using FFmpeg
     let frame_pattern = format!("{}/frame_%04d.png", frames_dir.to_string_lossy());
-    let extract_output = TokioCommand::new("ffmpeg")
+    let extract_output = TokioCommand::new(&ffmpeg_path)
         .arg("-i")
         .arg(input_path)
         .arg("-vf")
@@ -1303,7 +1324,7 @@ async fn upscale_video_with_enhanced(
             scale_factor, scale_factor
         );
         
-        let mut ffmpeg_cmd = TokioCommand::new("ffmpeg");
+        let mut ffmpeg_cmd = TokioCommand::new(&ffmpeg_path);
         let frame_output = ffmpeg_cmd
             .arg("-i")
             .arg(&*frame_path.to_string_lossy())
@@ -1327,7 +1348,7 @@ async fn upscale_video_with_enhanced(
     
     // Reassemble video from upscaled frames
     let upscaled_pattern = format!("{}/upscaled_frame_%04d.png", upscaled_frames_dir.to_string_lossy());
-    let reassemble_output = TokioCommand::new("ffmpeg")
+    let reassemble_output = TokioCommand::new(&ffmpeg_path)
         .arg("-framerate")
         .arg("30")
         .arg("-i")
@@ -1366,15 +1387,17 @@ async fn upscale_video_with_enhanced(
 
 // Enhanced traditional unblur function for images
 async fn unblur_with_enhanced(
+    app: &AppHandle,
     input_path: &str,
     output_path: &std::path::Path,
 ) -> Result<FilterResult, String> {
+    let ffmpeg_path = get_ffmpeg_path(app)?;
     println!("Using enhanced traditional processing for unblurring");
     
     // Multi-pass enhanced unblur processing
     let filter = "unsharp=7:7:2.5:7:7:0.0,convolution=0 -1 0 -1 10 -1 0 -1 0,unsharp=5:5:1.5:5:5:0.0,convolution=0 -1 0 -1 6 -1 0 -1 0,unsharp=3:3:1.0:3:3:0.0";
     
-    let mut ffmpeg_cmd = TokioCommand::new("ffmpeg");
+    let mut ffmpeg_cmd = TokioCommand::new(&ffmpeg_path);
     let output = ffmpeg_cmd
         .arg("-i")
         .arg(input_path)
@@ -1403,11 +1426,13 @@ async fn unblur_with_enhanced(
 
 // Enhanced traditional unblur function for videos
 async fn unblur_video_with_enhanced(
+    app: &AppHandle,
     input_path: &str,
     output_path: &std::path::Path,
 ) -> Result<FilterResult, String> {
     use std::fs;
     
+    let ffmpeg_path = get_ffmpeg_path(app)?;
     println!("Using enhanced traditional processing for video unblurring");
     
     // Create temporary directories for frames
@@ -1424,7 +1449,7 @@ async fn unblur_video_with_enhanced(
     
     // Extract frames using FFmpeg
     let frame_pattern = format!("{}/frame_%04d.png", frames_dir.to_string_lossy());
-    let extract_output = TokioCommand::new("ffmpeg")
+    let extract_output = TokioCommand::new(&ffmpeg_path)
         .arg("-i")
         .arg(input_path)
         .arg("-vf")
@@ -1468,7 +1493,7 @@ async fn unblur_video_with_enhanced(
         // Use enhanced traditional unblur processing for each frame
         let filter = "unsharp=7:7:2.5:7:7:0.0,convolution=0 -1 0 -1 10 -1 0 -1 0,unsharp=5:5:1.5:5:5:0.0,convolution=0 -1 0 -1 6 -1 0 -1 0,unsharp=3:3:1.0:3:3:0.0";
         
-        let mut ffmpeg_cmd = TokioCommand::new("ffmpeg");
+        let mut ffmpeg_cmd = TokioCommand::new(&ffmpeg_path);
         let frame_output = ffmpeg_cmd
             .arg("-i")
             .arg(&*frame_path.to_string_lossy())
@@ -1492,7 +1517,7 @@ async fn unblur_video_with_enhanced(
     
     // Reassemble video from unblurred frames
     let unblurred_pattern = format!("{}/unblurred_frame_%04d.png", unblurred_frames_dir.to_string_lossy());
-    let reassemble_output = TokioCommand::new("ffmpeg")
+    let reassemble_output = TokioCommand::new(&ffmpeg_path)
         .arg("-framerate")
         .arg("30")
         .arg("-i")
@@ -1531,6 +1556,7 @@ async fn unblur_video_with_enhanced(
 
 #[command]
 pub async fn generate_image_with_dalle(
+    api_key: &str,
     prompt: &str,
     size: &str,
     quality: &str,
@@ -1542,14 +1568,12 @@ pub async fn generate_image_with_dalle(
     println!("Size: {}", size);
     println!("Quality: {}", quality);
     
-    // Get OpenAI API key
-    let api_key = std::env::var("OPENAI_API_KEY")
-        .map_err(|e| {
-            println!("Error getting API key: {}", e);
-            "OpenAI API key not found. Please set OPENAI_API_KEY environment variable.".to_string()
-        })?;
+    // Validate API key
+    if api_key.trim().is_empty() {
+        return Err("OpenAI API key is required. Please enter your API key.".to_string());
+    }
     
-    println!("API key found, length: {}", api_key.len());
+    println!("API key provided, length: {}", api_key.len());
     
     // Create output directory
     let output_dir = "/tmp/clipforge_processed";

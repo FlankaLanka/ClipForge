@@ -19,11 +19,25 @@ interface GenerationResult {
 
 const DALLEImageGenerator: React.FC = () => {
   const [prompt, setPrompt] = useState<string>('');
+  const [apiKey, setApiKey] = useState<string>(() => {
+    // Load API key from localStorage on component mount
+    return localStorage.getItem('openai_api_key') || '';
+  });
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [imageSize, setImageSize] = useState<string>('1024x1024');
   const [imageQuality, setImageQuality] = useState<string>('standard');
+
+  // Save API key to localStorage whenever it changes
+  const handleApiKeyChange = (value: string) => {
+    setApiKey(value);
+    if (value.trim()) {
+      localStorage.setItem('openai_api_key', value.trim());
+    } else {
+      localStorage.removeItem('openai_api_key');
+    }
+  };
 
   const imageSizes = [
     { value: '1024x1024', label: '1024×1024', description: 'Square' },
@@ -42,6 +56,11 @@ const DALLEImageGenerator: React.FC = () => {
       return;
     }
 
+    if (!apiKey.trim()) {
+      setError('Please enter your OpenAI API key');
+      return;
+    }
+
     console.log('Starting DALL-E image generation...');
     console.log('Prompt:', prompt.trim());
     console.log('Size:', imageSize);
@@ -54,16 +73,8 @@ const DALLEImageGenerator: React.FC = () => {
     try {
       console.log('Calling generate_image_with_dalle command...');
       
-      // Test if we can call a known command first
-      try {
-        console.log('Testing with known command...');
-        await invoke('get_openai_api_key');
-        console.log('Known command works, proceeding with DALL-E...');
-      } catch (testErr) {
-        console.log('Test command failed, but continuing...', testErr);
-      }
-      
       const result = await invoke<GenerationResult>('generate_image_with_dalle', {
+        apiKey: apiKey.trim(),
         prompt: prompt.trim(),
         size: imageSize,
         quality: imageQuality
@@ -131,6 +142,33 @@ const DALLEImageGenerator: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column - Controls */}
         <div className="space-y-6">
+          {/* API Key Input */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              OpenAI API Key
+            </label>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => handleApiKeyChange(e.target.value)}
+              placeholder="sk-proj-..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              disabled={isGenerating}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Get your API key from{' '}
+              <a 
+                href="https://platform.openai.com/api-keys" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-purple-600 hover:underline"
+              >
+                OpenAI Dashboard
+              </a>
+              . Your key is saved locally in your browser.
+            </p>
+          </div>
+
           {/* Prompt Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-3">

@@ -1,10 +1,12 @@
-use tauri::command;
+use tauri::{command, AppHandle};
 use std::fs;
 use tokio::process::Command;
+use crate::commands::binary_utils::get_ffmpeg_path;
 
 /// Generate a video from text using DALL-E images and FFmpeg
 #[command]
 pub async fn generate_text_to_video(
+    app: AppHandle,
     prompt: String,
     duration: f64,
     style: String,
@@ -49,7 +51,7 @@ pub async fn generate_text_to_video(
     }
 
     // Create video from images using FFmpeg
-    create_video_from_images(&image_paths, scene_duration, &output_path, &style).await?;
+    create_video_from_images(&app, &image_paths, scene_duration, &output_path, &style).await?;
 
     // Clean up temporary files
     if let Err(e) = fs::remove_dir_all(&temp_dir) {
@@ -61,6 +63,7 @@ pub async fn generate_text_to_video(
 
 /// Create video from image sequence using FFmpeg
 async fn create_video_from_images(
+    app: &AppHandle,
     image_paths: &[String],
     scene_duration: f64,
     output_path: &str,
@@ -88,7 +91,8 @@ async fn create_video_from_images(
         .map_err(|e| format!("Failed to create FFmpeg input file: {}", e))?;
 
     // Build FFmpeg command
-    let mut ffmpeg_cmd = Command::new("ffmpeg");
+    let ffmpeg_path = get_ffmpeg_path(app)?;
+    let mut ffmpeg_cmd = Command::new(ffmpeg_path);
     ffmpeg_cmd
         .arg("-f")
         .arg("concat")

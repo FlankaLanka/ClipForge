@@ -6,6 +6,7 @@ pub mod text_to_video;
 pub mod video_upscaler;
 pub mod character_extractor;
 pub mod ai_styler;
+pub mod binary_utils;
 
 use serde::{Deserialize, Serialize};
 
