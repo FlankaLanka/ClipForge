@@ -32,3 +32,9 @@ src-tauri/target/
 # Environment variables
 .env
 .env.local
+
+# LibTorch files (too large for GitHub)
+libtorch/
+libtorch-macos.zip
+setup_ai.sh
+AI_SYSTEM_README.md

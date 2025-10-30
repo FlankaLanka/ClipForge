@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Sparkles, Wand2, Zap, Palette } from 'lucide-react';
-import AIStyleGenerator from './AIStyleGenerator';
-import AIVideoUpscaler from './AIVideoUpscaler';
+import { Sparkles, Wand2, Zap, Image, Palette } from 'lucide-react';
+import AIStyler from './AIStyler';
+import DALLEImageGenerator from './DALLEImageGenerator';
 
 const AIToolsTab: React.FC = () => {
-  const [activeTool, setActiveTool] = useState<'style-generator' | 'video-upscaler'>('style-generator');
+  const [activeTool, setActiveTool] = useState<'ai-styler' | 'image-generator'>('ai-styler');
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-6">
@@ -16,8 +16,8 @@ const AIToolsTab: React.FC = () => {
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">AI Video Tools</h1>
-              <p className="text-white/80 mt-1">Enhance and polish your videos with AI-powered tools</p>
+              <h1 className="text-2xl font-bold text-white">AI Media Tools</h1>
+              <p className="text-white/80 mt-1">Style your media and generate AI images with powerful tools</p>
             </div>
           </div>
         </div>
@@ -26,36 +26,36 @@ const AIToolsTab: React.FC = () => {
         <div className="border-b border-gray-200">
           <div className="flex space-x-1 p-4">
             <button
-              onClick={() => setActiveTool('style-generator')}
+              onClick={() => setActiveTool('ai-styler')}
               className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
-                activeTool === 'style-generator'
+                activeTool === 'ai-styler'
                   ? 'bg-purple-100 text-purple-700 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
               <Palette className="w-5 h-5" />
-              <span>AI Style Transfer</span>
+              <span>Media Styler</span>
             </button>
             <button
-              onClick={() => setActiveTool('video-upscaler')}
+              onClick={() => setActiveTool('image-generator')}
               className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
-                activeTool === 'video-upscaler'
+                activeTool === 'image-generator'
                   ? 'bg-purple-100 text-purple-700 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
-              <Zap className="w-5 h-5" />
-              <span>AI Video Upscaler</span>
+              <Sparkles className="w-5 h-5" />
+              <span>DALL-E Generator</span>
             </button>
           </div>
         </div>
 
         {/* Tool Content */}
         <div className="p-6">
-          {activeTool === 'style-generator' ? (
-            <AIStyleGenerator />
+          {activeTool === 'ai-styler' ? (
+            <AIStyler />
           ) : (
-            <AIVideoUpscaler />
+            <DALLEImageGenerator />
           )}
         </div>
       </div>

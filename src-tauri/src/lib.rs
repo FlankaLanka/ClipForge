@@ -11,8 +11,12 @@ use commands::{
     },
     openai::{get_openai_api_key, generate_dalle_image, style_transfer_image, validate_openai_key},
     text_to_video::{generate_text_to_video, generate_text_overlay_video},
-    style_generator::{apply_style_to_video, get_available_ffmpeg_styles, get_available_ai_styles},
     video_upscaler::{upscale_video, get_available_upscale_models, get_video_enhancement_options},
+    character_extractor::{
+        create_temp_directory, create_directory, extract_video_frames, detect_character_in_frame,
+        compare_images, build_character_sprite_sheet, copy_sprite_sheet_to_location, copy_sprite_sheet_to_desktop, remove_directory
+    },
+    ai_styler::{apply_filters, upscale_media, process_media, copy_file_to_desktop, copy_file_to_location, get_esrgan_models, download_esrgan_model, generate_image_with_dalle},
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -47,12 +51,26 @@ pub fn run() {
             validate_openai_key,
             generate_text_to_video,
             generate_text_overlay_video,
-            apply_style_to_video,
-            get_available_ffmpeg_styles,
-            get_available_ai_styles,
             upscale_video,
             get_available_upscale_models,
             get_video_enhancement_options,
+            create_temp_directory,
+            create_directory,
+            extract_video_frames,
+            detect_character_in_frame,
+            compare_images,
+            build_character_sprite_sheet,
+            copy_sprite_sheet_to_location,
+            copy_sprite_sheet_to_desktop,
+            remove_directory,
+            apply_filters,
+            upscale_media,
+            process_media,
+            copy_file_to_desktop,
+            copy_file_to_location,
+            get_esrgan_models,
+            download_esrgan_model,
+            generate_image_with_dalle,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

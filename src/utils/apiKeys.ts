@@ -78,6 +78,6 @@ export const getApiKeySetupInstructions = (): string[] => {
     '2. Copy .env.example to .env: cp .env.example .env',
     '3. Edit .env and add your API key: OPENAI_API_KEY=sk-your-key-here',
     '4. Restart ClipForge',
-    '5. The AI Tools tab will be available once the key is set'
+    '5. The Image/Video Processing tab will be available once the key is set'
   ];
 };

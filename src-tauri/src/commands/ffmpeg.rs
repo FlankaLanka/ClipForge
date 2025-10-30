@@ -174,19 +174,6 @@ pub async fn export_timeline(params: ExportParams) -> Result<String, String> {
         _ => (1920, 1080), // Default to 1080p
     };
 
-    // Create black screen generator for gaps
-    let max_duration = sorted_clips.iter().map(|c| c.end_time).fold(0.0, f64::max) + 1.0;
-    let black_video = format!(
-        "color=c=black:size={}x{}:duration={}:rate=30,setsar=1[black_v]",
-        width, height, max_duration
-    );
-    filter_parts.push(black_video);
-    
-    let black_audio = format!(
-        "anullsrc=channel_layout=stereo:sample_rate=48000[black_a]"
-    );
-    filter_parts.push(black_audio);
-
     // Create mapping from file paths to input indices
     let mut input_map = std::collections::HashMap::new();
     let mut input_index = 0;
@@ -213,37 +200,38 @@ pub async fn export_timeline(params: ExportParams) -> Result<String, String> {
         // Add black screen if there's a gap
         if clip.start_time > current_time {
             let gap_duration = clip.start_time - current_time;
-            let gap_video = format!(
-                "[black_v]trim=start=0:duration={},setsar=1[gap_v{}]",
+            // Generate a fresh black screen for this specific gap
+            let gap_black_video = format!(
+                "color=c=black:size={}x{}:duration={}:rate=30,setsar=1[gap_v{}]",
+                width, height, gap_duration, segment_count
+            );
+            let gap_black_audio = format!(
+                "anullsrc=channel_layout=stereo:sample_rate=48000:duration={}[gap_a{}]",
                 gap_duration, segment_count
             );
-            let gap_audio = format!(
-                "[black_a]atrim=start=0:duration={}[gap_a{}]",
-                gap_duration, segment_count
-            );
-            filter_parts.push(gap_video);
-            filter_parts.push(gap_audio);
+            filter_parts.push(gap_black_video);
+            filter_parts.push(gap_black_audio);
             timeline_segments.push(format!("[gap_v{}][gap_a{}]", segment_count, segment_count));
             segment_count += 1;
         }
         
-        // Trim and scale video with proper aspect ratio handling
+        // Trim first (from source), then scale, and set SAR for consistency
         let video_filter = format!(
-            "[{}:v]trim=start={}:duration={},setpts=PTS-STARTPTS,scale={}:{}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)/2:(oh-ih)/2:black,setsar=1[v{}_trimmed]",
-            input_idx, trim_start, trim_duration, width, height, width, height, i
+            "[{}:v]trim=start={}:end={},setpts=PTS-STARTPTS,scale={}:{}:flags=lanczos,setsar=1[v{}_scaled]",
+            input_idx, trim_start, clip.trim_out, width, height, i
         );
         println!("Video filter for clip {}: {}", i, video_filter);
         filter_parts.push(video_filter);
         
-        // Trim audio if it exists
+        // Trim audio to match video
         let audio_filter = format!(
-            "[{}:a]atrim=start={}:duration={},asetpts=PTS-STARTPTS[a{}_trimmed]",
-            input_idx, trim_start, trim_duration, i
+            "[{}:a]atrim=start={}:end={},asetpts=PTS-STARTPTS[a{}_trimmed]",
+            input_idx, trim_start, clip.trim_out, i
         );
         filter_parts.push(audio_filter);
         
-        // Add the actual clip to timeline
-        timeline_segments.push(format!("[v{}_trimmed][a{}_trimmed]", i, i));
+        // Add the scaled clip to timeline
+        timeline_segments.push(format!("[v{}_scaled][a{}_trimmed]", i, i));
         
         current_time = clip.end_time;
     }

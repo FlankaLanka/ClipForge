@@ -7,15 +7,13 @@ import { Timeline } from "./components/Timeline";
 import RecordingTab from "./components/RecordingTab";
 import AIToolsTab from "./components/AIToolsTab";
 import ExportModal from "./components/ExportModal";
-import HelpModal from "./components/HelpModal";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
-import { Menu, X, HelpCircle, Download, Play, Video, Sparkles } from "lucide-react";
+import { Menu, X, Download, Play, Video, Sparkles } from "lucide-react";
 
 const App: React.FC = () => {
   const { clips, timelineClips } = useEditorStore();
   const { clips: timelineClipsNew, getTimelineDuration } = useTimelineStore();
   const [showExportModal, setShowExportModal] = useState(false);
-  const [showHelpModal, setShowHelpModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'editor' | 'recording' | 'ai-tools'>('editor');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
@@ -40,16 +38,6 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Help Button */}
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={() => setShowHelpModal(true)}
-                    className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200"
-                    title="Help & Shortcuts"
-                  >
-                    <HelpCircle className="w-5 h-5" />
-                  </button>
-                </div>
               </div>
 
           {/* Tab Navigation */}
@@ -86,7 +74,7 @@ const App: React.FC = () => {
                 }`}
               >
                 <Sparkles className="w-4 h-4" />
-                <span>AI Tools</span>
+                <span>Image/Video Processing</span>
               </button>
             </div>
           </div>
@@ -171,10 +159,6 @@ const App: React.FC = () => {
         onClose={() => setShowExportModal(false)} 
       />
       
-      <HelpModal 
-        isOpen={showHelpModal} 
-        onClose={() => setShowHelpModal(false)} 
-      />
     </div>
   );
 };

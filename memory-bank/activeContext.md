@@ -1,14 +1,15 @@
 # ClipForge - Active Context
 
 ## Current Work Focus
-**Phase 8: Timeline Functionality & UX Enhancements** (Completed)
-- ✅ **Split Functionality Fix**: Fixed split clip functionality to properly calculate durations and timeline positions
-- ✅ **Zoom Enhancement**: Increased minimum zoom out level to allow 4x more zoom out (1 pixel per second minimum)
-- ✅ **Manual Timeline Addition**: Changed video import behavior to require double-click for timeline addition
-- ✅ **Enhanced MediaPanel UI**: Added visual indicators for videos on timeline vs imported only
-- ✅ **Improved User Control**: Users now have full control over when videos are added to timeline
-- ✅ **Code Cleanup**: Removed old debug logs and fixed syntax errors
-- ✅ **Import/Export Fixes**: Resolved destructuring issues with timeline store imports
+**Phase 9: AI Features Restart - Character Sprite Extractor** (Completed)
+- ✅ **AI Features Restart**: Completely replaced AI style generator with character sprite extractor
+- ✅ **Character Sprite Extractor**: New AI-powered tool for extracting 2D character sprites from gameplay footage
+- ✅ **OpenAI Vision Integration**: Uses GPT-4o Vision API for character detection and cropping
+- ✅ **FFmpeg Frame Extraction**: Extracts frames at configurable FPS (8-12 FPS)
+- ✅ **Sprite Sheet Assembly**: Combines detected character frames into organized sprite sheet
+- ✅ **Duplicate Detection**: Automatically removes similar/duplicate frames using image comparison
+- ✅ **Metadata Generation**: Creates JSON metadata with frame positions and timing information
+- ✅ **UI Integration**: Complete React component with progress tracking and preview
 
 ## Recent Major Achievements
 - ✅ **Split Functionality Fix**: Fixed split clip functionality to properly calculate durations and timeline positions
@@ -18,10 +19,10 @@
 - ✅ **Improved User Control**: Full user control over timeline addition with clear UI feedback
 - ✅ **Code Quality**: Removed old debug logs and fixed syntax errors for cleaner codebase
 - ✅ **Import Fixes**: Resolved destructuring issues with timeline store imports
-- ✅ **AI Video Tools Tab**: Complete AI-powered video polishing and enhancement system
+- ✅ **AI Video Tools Tab**: Complete AI-powered video tools with character sprite extraction
 - ✅ **AI Video Upscaler**: Upscale videos using multiple AI models with quality options
-- ✅ **AI Style Transfer**: Enhanced style transfer with more artistic styles and better processing
-- ✅ **OpenAI Integration**: Full DALL-E 3 API integration with proper error handling
+- ✅ **Character Sprite Extractor**: AI-powered tool for extracting 2D character sprites from gameplay footage
+- ✅ **OpenAI Vision Integration**: GPT-4o Vision API for character detection and cropping
 - ✅ **Video Performance Fix**: Resolved 1 FPS performance issue with optimized sync logic
 - ✅ **Timeline Parsing**: Proper video timeline parsing respecting trim start/end points
 - ✅ **Infinite Ruler**: Timeline ruler now extends infinitely beyond current clips
@@ -70,6 +71,8 @@
 - **CanvasRecordingStudio**: Recording interface with source management
 - **CanvasPreview**: 1920x1080 canvas with sprite rendering and interaction
 - **CanvasRecorder**: High-quality recording service with audio mixing
+- **CharacterSpriteExtractor**: AI-powered character sprite extraction from gameplay footage
+- **AIToolsTab**: AI tools interface with character sprite extractor and video upscaler
 
 ## Important Instructions
 - **DO NOT start development servers unless explicitly told to do so**
@@ -90,4 +93,7 @@
 - ✅ High-quality 1920x1080 output
 - ✅ Video performance optimized (1 FPS → 60 FPS)
 - ✅ Timeline duration shows actual end of video clips
+- ✅ Character Sprite Extractor: AI-powered sprite extraction from gameplay footage
+- ✅ OpenAI Vision API integration for character detection and cropping
+- ✅ Sprite sheet assembly with metadata generation
 - 🎯 **Ready for user testing and feedback**

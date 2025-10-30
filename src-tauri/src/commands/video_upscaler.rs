@@ -1,6 +1,5 @@
 use tauri::command;
 use std::path::Path;
-use std::fs;
 use tokio::process::Command;
 
 /// Upscale video using AI models

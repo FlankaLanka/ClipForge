@@ -3,8 +3,9 @@ pub mod filesystem;
 pub mod recording;
 pub mod openai;
 pub mod text_to_video;
-pub mod style_generator;
 pub mod video_upscaler;
+pub mod character_extractor;
+pub mod ai_styler;
 
 use serde::{Deserialize, Serialize};
 
